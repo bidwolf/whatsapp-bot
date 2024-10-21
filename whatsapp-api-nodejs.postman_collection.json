@@ -908,6 +908,68 @@
 		{
 			"name": "Group",
 			"item": [
+        {
+          "name":"Register Group",
+          "request":{
+            "method":"POST",
+            "header":[],
+            "url":{
+              "raw":"{{baseUrl}}/group/register>key={{instance_key}}",
+              "host":["{{baseUrl}}"],
+              "path":["group","register"],
+              "query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+            },
+            "description":"Register a group to listen events",
+            "body":{
+              "mode":"urlencoded",
+              "urlencoded":[
+                {
+                  "key":"id",
+                  "value":"",
+                  "description":"Group Id\n(Required)",
+                  "type":"text"
+                }
+              ]
+            },
+            "response":[]
+          }
+        },
+        {
+          "name":"Unregister Group",
+          "request":{
+            "method":"POST",
+            "header":[],
+            "url":{
+              "raw":"{{baseUrl}}/group/unregister>key={{instance_key}}",
+              "host":["{{baseUrl}}"],
+              "path":["group","unregister"],
+              "query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+            },
+            "description":"Unregister a group to listen events",
+            "body":{
+              "mode":"urlencoded",
+              "urlencoded":[
+                {
+                  "key":"id",
+                  "value":"",
+                  "description":"Group Id\n(Required)",
+                  "type":"text"
+                }
+              ]
+            },
+            "response":[]
+          }
+        },
 				{
 					"name": "Create Group",
 					"request": {
@@ -961,6 +1023,32 @@
 							]
 						},
 						"description": "Leave a group by its ID"
+					},
+					"response": []
+				},
+        {
+					"name": "Get Available Groups",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/group/availableGroups?key={{instance_key}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"group",
+								"availableGroups"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}",
+									"description": "Instance Key\n(Required)"
+								}
+							]
+						},
+						"description": "Get all available groups ids"
 					},
 					"response": []
 				},
