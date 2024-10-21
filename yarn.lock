@@ -1315,11 +1315,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:>=13.7.0":
-  version: 22.7.6
-  resolution: "@types/node@npm:22.7.6"
+  version: 22.7.7
+  resolution: "@types/node@npm:22.7.7"
   dependencies:
     undici-types: "npm:~6.19.2"
-  checksum: 10c0/d4406a63afce981c363fb1d1954aaf1759ad2d487c0833ebf667565ea4e45ff217d6fab4b5343badbdeccdf9d2e4a0841d633e0c929ceabcb33c288663dd0c73
+  checksum: 10c0/07268a1e990ad9d9b1865092881317ea679a46eb6706d83a8874eec75fdddae6cfd6452e4e68b651561183e2a8f8548276f3155744bc402c2545978c19b70d65
   languageName: node
   linkType: hard
 
@@ -1384,7 +1384,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@whiskeysockets/baileys@npm:^6.1.0":
+"@whiskeysockets/baileys@npm:^6.7.8":
   version: 6.7.8
   resolution: "@whiskeysockets/baileys@npm:6.7.8"
   dependencies:
@@ -1639,7 +1639,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.1.3, axios@npm:^1.6.0":
+"axios@npm:^1.6.0, axios@npm:^1.7.7":
   version: 1.7.7
   resolution: "axios@npm:1.7.7"
   dependencies:
@@ -2376,7 +2376,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.0.3":
+"dotenv@npm:^16.4.5":
   version: 16.4.5
   resolution: "dotenv@npm:16.4.5"
   checksum: 10c0/48d92870076832af0418b13acd6e5a5a3e83bb00df690d9812e94b24aff62b88ade955ac99a05501305b8dc8f1b0ee7638b18493deb6fe93d680e5220936292f
@@ -2409,7 +2409,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ejs@npm:^3.1.7":
+"ejs@npm:^3.1.10":
   version: 3.1.10
   resolution: "ejs@npm:3.1.10"
   dependencies:
@@ -2524,14 +2524,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-prettier@npm:^8.5.0":
-  version: 8.10.0
-  resolution: "eslint-config-prettier@npm:8.10.0"
+"eslint-config-prettier@npm:^9.1.0":
+  version: 9.1.0
+  resolution: "eslint-config-prettier@npm:9.1.0"
   peerDependencies:
     eslint: ">=7.0.0"
   bin:
     eslint-config-prettier: bin/cli.js
-  checksum: 10c0/19f8c497d9bdc111a17a61b25ded97217be3755bbc4714477dfe535ed539dddcaf42ef5cf8bb97908b058260cf89a3d7c565cb0be31096cbcd39f4c2fa5fe43c
+  checksum: 10c0/6d332694b36bc9ac6fdb18d3ca2f6ac42afa2ad61f0493e89226950a7091e38981b66bac2b47ba39d15b73fff2cd32c78b850a9cf9eed9ca9a96bfb2f3a2f10d
   languageName: node
   linkType: hard
 
@@ -2552,7 +2552,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^8.28.0":
+"eslint@npm:^8.57.1":
   version: 8.57.1
   resolution: "eslint@npm:8.57.1"
   dependencies:
@@ -2702,14 +2702,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express-exception-handler@npm:^1.3.23":
+"express-exception-handler@npm:^1.3.111":
   version: 1.3.111
   resolution: "express-exception-handler@npm:1.3.111"
   checksum: 10c0/23f72f340f0c1e2487c49ebd0c8f5d03404b49bcc3ecbd74dbf8b2112ad87b550df36f7d7f9ca51b082d5b29861215afe3d7daeb00846952384a6683ece2f918
   languageName: node
   linkType: hard
 
-"express@npm:^4.18.2":
+"express@npm:^4.21.1":
   version: 4.21.1
   resolution: "express@npm:4.21.1"
   dependencies:
@@ -3273,7 +3273,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"husky@npm:^8.0.2":
+"husky@npm:^8.0.3":
   version: 8.0.3
   resolution: "husky@npm:8.0.3"
   bin:
@@ -3600,7 +3600,7 @@ __metadata:
   dependencies:
     curve25519-js: "npm:^0.0.4"
     protobufjs: "npm:6.8.8"
-  checksum: 10c0/fe246a380ff4335ec0f5d2a3daf7bbbba4e58e923e57ce1264683fa57571742f11c6d34a29adea4f4ae7de3746612a64038bc3d45325976339100dadb89b6f03
+  checksum: 10c0/3d66ab1ae33ffd27d03b3f9cf16fdff9a31a5cac9f5c404a952f77a67db22ef4879ed51816d816ebe9776e48cd6339e939d805f71451e42a0ac0902f02ec5d7c
   languageName: node
   linkType: hard
 
@@ -3611,19 +3611,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"link-preview-js@npm:^3.0.0":
-  version: 3.0.5
-  resolution: "link-preview-js@npm:3.0.5"
+"link-preview-js@npm:^3.0.12":
+  version: 3.0.12
+  resolution: "link-preview-js@npm:3.0.12"
   dependencies:
     abort-controller: "npm:^3.0.0"
     cheerio: "npm:1.0.0-rc.11"
     cross-fetch: "npm:3.1.5"
     url: "npm:0.11.0"
-  checksum: 10c0/cd2cdf486031e08eeb7a4d6aea25462febdd4e2a0a8ea2190695066b037787b35888c39ea55dad3820d9c3247ff04e7b4f761fda123121c0b5176e92e868d2cb
+  checksum: 10c0/4a20c3e8c69ff3987719019a48fa6a4cc032661b1b336c17ae3960129e056f46c0616d733102d5d2a3aa92aeb1792078f675364f25a5eed2d24972896051b85a
   languageName: node
   linkType: hard
 
-"lint-staged@npm:^13.0.4":
+"lint-staged@npm:^13.3.0":
   version: 13.3.0
   resolution: "lint-staged@npm:13.3.0"
   dependencies:
@@ -4017,7 +4017,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mocha@npm:^10.1.0":
+"mocha@npm:^10.7.3":
   version: 10.7.3
   resolution: "mocha@npm:10.7.3"
   dependencies:
@@ -4058,7 +4058,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongodb@npm:4.17.2, mongodb@npm:^4.12.1":
+"mongodb@npm:4.17.2, mongodb@npm:^4.17.2":
   version: 4.17.2
   resolution: "mongodb@npm:4.17.2"
   dependencies:
@@ -4076,7 +4076,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongoose@npm:^6.7.4":
+"mongoose@npm:^6.13.3":
   version: 6.13.3
   resolution: "mongoose@npm:6.13.3"
   dependencies:
@@ -4181,10 +4181,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"negotiator@npm:0.6.3, negotiator@npm:^0.6.3":
+"negotiator@npm:0.6.3":
   version: 0.6.3
   resolution: "negotiator@npm:0.6.3"
   checksum: 10c0/3ec9fd413e7bf071c937ae60d572bc67155262068ed522cf4b3be5edbe6ddf67d095ec03a3a14ebf8fc8e95f8e1d61be4869db0dbb0de696f6b837358bd43fc2
+  languageName: node
+  linkType: hard
+
+"negotiator@npm:^0.6.3":
+  version: 0.6.4
+  resolution: "negotiator@npm:0.6.4"
+  checksum: 10c0/3e677139c7fb7628a6f36335bf11a885a62c21d5390204590a1a214a5631fcbe5ea74ef6a610b60afe84b4d975cbe0566a23f20ee17c77c73e74b80032108dea
   languageName: node
   linkType: hard
 
@@ -4256,7 +4263,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nodemon@npm:^2.0.20":
+"nodemon@npm:^2.0.22":
   version: 2.0.22
   resolution: "nodemon@npm:2.0.22"
   dependencies:
@@ -4627,7 +4634,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino@npm:^8.7.0":
+"pino@npm:^8.21.0":
   version: 8.21.0
   resolution: "pino@npm:8.21.0"
   dependencies:
@@ -4684,12 +4691,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^2.8.0":
-  version: 2.8.8
-  resolution: "prettier@npm:2.8.8"
+"prettier@npm:^3.3.3":
+  version: 3.3.3
+  resolution: "prettier@npm:3.3.3"
   bin:
-    prettier: bin-prettier.js
-  checksum: 10c0/463ea8f9a0946cd5b828d8cf27bd8b567345cf02f56562d5ecde198b91f47a76b7ac9eae0facd247ace70e927143af6135e8cf411986b8cb8478784a4d6d724a
+    prettier: bin/prettier.cjs
+  checksum: 10c0/b85828b08e7505716324e4245549b9205c0cacb25342a030ba8885aba2039a115dbcf75a0b7ca3b37bc9d101ee61fab8113fc69ca3359f2a226f1ecc07ad2e26
   languageName: node
   linkType: hard
 
@@ -4846,7 +4853,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qrcode@npm:^1.5.1":
+"qrcode@npm:^1.5.4":
   version: 1.5.4
   resolution: "qrcode@npm:1.5.4"
   dependencies:
@@ -5199,7 +5206,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sharp@npm:^0.30.5":
+"sharp@npm:^0.30.7":
   version: 0.30.7
   resolution: "sharp@npm:0.30.7"
   dependencies:
@@ -5538,7 +5545,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"supertest@npm:^6.3.1":
+"supertest@npm:^6.3.4":
   version: 6.3.4
   resolution: "supertest@npm:6.3.4"
   dependencies:
@@ -5827,7 +5834,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^9.0.0, uuid@npm:^9.0.1":
+"uuid@npm:^9.0.1":
   version: 9.0.1
   resolution: "uuid@npm:9.0.1"
   bin:
@@ -5862,28 +5869,28 @@ __metadata:
   resolution: "whatsapp-api@workspace:."
   dependencies:
     "@adiwajshing/keyed-db": "npm:^0.2.4"
-    "@whiskeysockets/baileys": "npm:^6.1.0"
-    axios: "npm:^1.1.3"
-    dotenv: "npm:^16.0.3"
-    ejs: "npm:^3.1.7"
-    eslint: "npm:^8.28.0"
-    eslint-config-prettier: "npm:^8.5.0"
-    express: "npm:^4.18.2"
-    express-exception-handler: "npm:^1.3.23"
-    husky: "npm:^8.0.2"
-    link-preview-js: "npm:^3.0.0"
-    lint-staged: "npm:^13.0.4"
-    mocha: "npm:^10.1.0"
-    mongodb: "npm:^4.12.1"
-    mongoose: "npm:^6.7.4"
+    "@whiskeysockets/baileys": "npm:^6.7.8"
+    axios: "npm:^1.7.7"
+    dotenv: "npm:^16.4.5"
+    ejs: "npm:^3.1.10"
+    eslint: "npm:^8.57.1"
+    eslint-config-prettier: "npm:^9.1.0"
+    express: "npm:^4.21.1"
+    express-exception-handler: "npm:^1.3.111"
+    husky: "npm:^8.0.3"
+    link-preview-js: "npm:^3.0.12"
+    lint-staged: "npm:^13.3.0"
+    mocha: "npm:^10.7.3"
+    mongodb: "npm:^4.17.2"
+    mongoose: "npm:^6.13.3"
     multer: "npm:^1.4.5-lts.1"
-    nodemon: "npm:^2.0.20"
-    pino: "npm:^8.7.0"
-    prettier: "npm:^2.8.0"
-    qrcode: "npm:^1.5.1"
-    sharp: "npm:^0.30.5"
-    supertest: "npm:^6.3.1"
-    uuid: "npm:^9.0.0"
+    nodemon: "npm:^2.0.22"
+    pino: "npm:^8.21.0"
+    prettier: "npm:^3.3.3"
+    qrcode: "npm:^1.5.4"
+    sharp: "npm:^0.30.7"
+    supertest: "npm:^6.3.4"
+    uuid: "npm:^9.0.1"
   languageName: unknown
   linkType: soft
 

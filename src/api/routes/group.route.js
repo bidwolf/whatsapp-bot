@@ -42,3 +42,6 @@ router
     .post(keyVerify, loginVerify, controller.groupInviteInfo)
 router.route('/groupjoin').post(keyVerify, loginVerify, controller.groupJoin)
 module.exports = router
+router.route('/register').post(controller.groupRegister)
+router.route('/unregister').post(controller.groupUnregister)
+router.route('/availableGroups').get(controller.groupAvailableList)

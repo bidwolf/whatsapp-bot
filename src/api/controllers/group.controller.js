@@ -121,3 +121,15 @@ exports.groupJoin = async (req, res) => {
     )
     return res.status(201).json({ error: false, data: data })
 }
+exports.groupRegister = async (req,res)=>{
+    const data = await WhatsAppInstances[req.query.key].registerGroup(req.body.id)
+    return res.status(200).json({error:false,data:data})
+}
+exports.groupUnregister = async (req,res)=>{
+    const data = await WhatsAppInstances[req.query.key].unRegisterGroup(req.body.id)
+    return res.status(200).json({error:false,data:data})
+}
+exports.groupAvailableList = async (req,res)=>{
+    const data = await WhatsAppInstances[req.query.key].getAllAvailableGroupMetadata()
+    return res.status(200).json({error:false,data:data})
+}
