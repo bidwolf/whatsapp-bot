@@ -57,7 +57,7 @@ const msgRetryCounterCache = new NodeCache();
 store?.readFromFile("./baileys_store_multi.json");
 setInterval(() => {
   store?.writeToFile("./baileys_store_multi.json");
-}, 100000);
+}, 10000);
 class WhatsAppInstance {
   socketConfig = {
     // comment the line below out
@@ -241,9 +241,10 @@ class WhatsAppInstance {
   }
   /**
    *
-   * @param {CommandCaller} commandCaller
-   * @param {Method} method
-   * @param {*} message
+   * @param {CommandCaller} commandCaller Info about the command itself like the executor, group id and arguments
+   * @param {Method} method Method used to call the command
+   * @param {*} message The message itself (for replies)
+   * @description Add a user to a group by number. The user must be admin to execute this command.
    * @returns
    */
 
@@ -262,6 +263,18 @@ class WhatsAppInstance {
     if (userNumber && groupInformation) {
       const sanitizedNumber = sanitizeNumber(userNumber);
       const newParticipantId = `${sanitizedNumber}@s.whatsapp.net`;
+      const participantExists = groupInformation.participants.find(
+        (p) => p.id === newParticipantId,
+      );
+      if (participantExists) {
+        await this.replyMessage(
+          groupId,
+          "Este número já se encontra no grupo.",
+          message,
+        );
+        logger.info("Participant not added, already in group");
+        return;
+      }
       const result = await this.groupParticipantsUpdate(
         groupId,
         [newParticipantId],
@@ -732,13 +745,17 @@ class WhatsAppInstance {
               webhookData.message.extendedTextMessage.text,
             ).split(" ")[0];
             const commandMention = get_command_mention(webhookData);
-            if (commandMention && commandMention.command_name) {
+            if (
+              commandMention &&
+              commandMention.command_name &&
+              commandMention.command_executor
+            ) {
               await this.chooseCommand(commandMention, "mention", msg);
               continue;
             }
           }
           const command = get_command_extended(webhookData);
-          if (command && command.command_name) {
+          if (command && command.command_name && command.command_executor) {
             await this.chooseCommand(command, "reply", msg);
             continue;
           }
@@ -752,7 +769,7 @@ class WhatsAppInstance {
         if (messageType === "conversation") {
           webhookData["text"] = msg.message.conversation;
           const command = get_command(webhookData);
-          if (command && command.command_name) {
+          if (command && command.command_name && command.command_executor) {
             await this.chooseCommand(command, "raw", msg);
             continue;
           }
@@ -760,7 +777,7 @@ class WhatsAppInstance {
 
         if (messageType === "extendedTextMessage") {
           const command = get_command_mention(webhookData);
-          if (command && command.command_name) {
+          if (command && command.command_name && command.command_executor) {
             await this.chooseCommand(command, "mention", msg);
             continue;
           }
