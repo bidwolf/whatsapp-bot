@@ -93,9 +93,9 @@ class WhatsAppInstance {
         conversation: "hello",
       };
     },
-    patchMessageBeforeSending: async (msg, recipientJids) => {
+    patchMessageBeforeSending: async (message) => {
       await this.instance?.sock.uploadPreKeysToServerIfRequired();
-      return msg;
+      return message;
     },
   };
   key = "";
