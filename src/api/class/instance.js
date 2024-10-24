@@ -4,6 +4,7 @@ const pino = require("pino");
 const {
   default: makeWASocket,
   makeInMemoryStore,
+  proto,
   isJidBroadcast,
   DisconnectReason,
   isJidNewsletter,
@@ -60,11 +61,17 @@ setInterval(() => {
 }, 10000);
 class WhatsAppInstance {
   socketConfig = {
+    retryRequestDelayMs: 350,
+    maxMsgRetryCount: 4,
+    fireInitQueries: true,
+    connectTimeoutMs: 20_000,
+    keepAliveIntervalMs: 30_000,
+    qrTimeout: 45_000,
+    defaultQueryTimeoutMs: undefined,
     // comment the line below out
     shouldIgnoreJid: (jid) =>
       !jid || isJidBroadcast(jid) || isJidNewsletter(jid),
     // implement to handle retries
-    defaultQueryTimeoutMs: undefined,
     printQRInTerminal: false,
     msgRetryCounterCache,
     logger: pino({
@@ -205,7 +212,7 @@ class WhatsAppInstance {
     if (userNumber && groupInformation) {
       const sanitizedNumber = sanitizeNumber(userNumber);
       const participant = groupInformation.participants.find(
-        (p) => p.id === `${sanitizedNumber}@s.whatsapp.net`,
+        (p) => p.id === this.getWhatsAppId(sanitizedNumber),
       );
       if (!participant) {
         logger.info("Participant not found");
@@ -255,25 +262,35 @@ class WhatsAppInstance {
       infoCommandMessage,
       groupId,
       command_executor,
-      allowedMethods: ["raw"],
+      allowedMethods: ["raw", "reply"],
       methods: method,
       message,
     });
     const userNumber = typeof args === "string" ? args : args.join(" ");
     if (userNumber && groupInformation) {
       const sanitizedNumber = sanitizeNumber(userNumber);
-      const newParticipantId = `${sanitizedNumber}@s.whatsapp.net`;
-      const participantExists = groupInformation.participants.find(
-        (p) => p.id === newParticipantId,
-      );
-      if (participantExists) {
-        await this.replyMessage(
-          groupId,
-          "Este número já se encontra no grupo.",
-          message,
+      let newParticipantId = this.getWhatsAppId(sanitizedNumber);
+      if (method === "reply") {
+        //"BEGIN:VCARD\nVERSION:3.0\nN:Didi;Diego;;;\nFN:Diego Didi\nTEL;type=Mobile;waid=553199033879:+55 31 9903-3879\nEND:VCARD"
+        //"BEGIN:VCARD\nVERSION:3.0\nN:;;;;\nFN:Cristin\nitem1.TEL;waid=553181197755:+55 31 8119-7755\nitem1.X-ABLabel:Celular\nEND:VCARD"
+        const vcard =
+          message.message.extendedTextMessage.contextInfo.quotedMessage
+            .contactMessage.vcard;
+        const phoneNumberMatch = vcard.match(
+          /TEL;(?:[^;]*;)*waid=\d+:(\+\d{2} \d{2} \d{4,5}-\d{4})/,
         );
-        logger.info("Participant not added, already in group");
-        return;
+        if (phoneNumberMatch) {
+          newParticipantId = this.getWhatsAppId(
+            sanitizeNumber(phoneNumberMatch[1]),
+          );
+        } else {
+          const reply = await this.replyMessage(
+            groupId,
+            "Você deve responder a uma mensagem de contato para adicionar o número.",
+            message,
+          );
+          return;
+        }
       }
       const result = await this.groupParticipantsUpdate(
         groupId,
@@ -307,6 +324,13 @@ class WhatsAppInstance {
               `Você foi convidado para o grupo ${groupInformation.subject}.\nhttps://chat.whatsapp.com/${groupInvite}`,
             );
           }
+        } else if (result[0].status == 409) {
+          logger.info("Participant not added");
+          await this.replyMessage(
+            groupId,
+            "O número já está no grupo.",
+            message,
+          );
         }
       }
     } else {
@@ -316,6 +340,83 @@ class WhatsAppInstance {
         message,
       );
       logger.info("Participant not added");
+    }
+  }
+  /**
+   *
+   * @param {CommandCaller} commandCaller Info about the command itself like the executor, group id and arguments
+   * @param {Method} method Method used to call the command
+   * @param {*} message The message itself (for replies)
+   * @description Make user admin, or remove admin status. The user must be admin to execute this command.
+   * @returns
+   */
+  async toggleGroupAdmin({ args, groupId, command_executor }, method, message) {
+    const infoCommandMessage =
+      "Para executar esse comando você deve mencionar um usuário.";
+    const groupInformation = await this.validateCommand({
+      infoCommandMessage,
+      groupId,
+      command_executor,
+      allowedMethods: ["raw", "mention", "reply"],
+      methods: method,
+      message,
+    });
+    const userNumber = typeof args === "string" ? args : args.join(" ");
+    const sanitizedNumber = sanitizeNumber(userNumber);
+    const whatsAppParticipantId = this.getWhatsAppId(sanitizedNumber);
+    const participantExists = groupInformation.participants.find(
+      (p) => p.id === whatsAppParticipantId,
+    );
+    if (this.getWhatsAppId(command_executor) === whatsAppParticipantId) {
+      const reply = await this.replyMessage(
+        groupId,
+        "Você não pode alterar seu próprio status de administrador.",
+        message,
+      );
+      return;
+    }
+    if (!participantExists) {
+      await this.replyMessage(
+        groupId,
+        "Este número não se encontra no grupo.",
+        message,
+      );
+      return;
+    }
+    if (participantExists.admin) {
+      const result = await this.demoteAdmin(groupId, [whatsAppParticipantId]);
+      if (result && result.length > 0 && result[0].status == 200) {
+        logger.info("Participant demoted");
+        const reply = await this.replyMessage(
+          groupId,
+          "Administrador removido com sucesso.",
+          message,
+        );
+        await this.SendWebhook(
+          "demote",
+          { participant: whatsAppParticipantId },
+          this.key,
+        );
+      } else {
+        logger.info("Participant not demoted");
+      }
+      return;
+    }
+    const result = await this.makeAdmin(groupId, [whatsAppParticipantId]);
+    if (result && result.length > 0 && result[0].status == 200) {
+      logger.info("Participant promoted");
+      const reply = await this.replyMessage(
+        groupId,
+        "Administrador adicionado com sucesso.",
+        message,
+      );
+      await this.SendWebhook(
+        "adm",
+        { participant: whatsAppParticipantId },
+        this.key,
+      );
+    } else {
+      logger.info("Participant not promoted");
     }
   }
   /**
@@ -351,6 +452,15 @@ class WhatsAppInstance {
         );
         break;
       }
+      case "adm":
+        {
+          await this.toggleGroupAdmin(
+            { args, command_executor, groupId },
+            method,
+            message,
+          );
+        }
+        break;
       default:
         console.log("No command found");
         break;
@@ -1225,12 +1335,18 @@ class WhatsAppInstance {
       };
     }
   }
-
-  async makeAdmin(id, users) {
+  /**
+   *
+   * @param {string} groupId
+   * @param {string[]} participantIds
+   * @returns
+   */
+  async makeAdmin(groupId, participantIds) {
     try {
-      const res = await this.instance.sock?.groupMakeAdmin(
-        this.getWhatsAppId(id),
-        this.parseParticipants(users),
+      const res = await this.instance.sock?.groupParticipantsUpdate(
+        this.getWhatsAppId(groupId),
+        this.parseParticipants(participantIds),
+        "promote", // replace this parameter with "remove", "demote" or "promote"
       );
       return res;
     } catch {
@@ -1241,12 +1357,18 @@ class WhatsAppInstance {
       };
     }
   }
-
-  async demoteAdmin(id, users) {
+  /**
+   *
+   * @param {string} groupID
+   * @param {string[]} participantIds
+   * @returns
+   */
+  async demoteAdmin(groupId, participantIds) {
     try {
-      const res = await this.instance.sock?.groupDemoteAdmin(
-        this.getWhatsAppId(id),
-        this.parseParticipants(users),
+      const res = await this.instance.sock?.groupParticipantsUpdate(
+        this.getWhatsAppId(groupId),
+        this.parseParticipants(participantIds),
+        "demote", // replace this parameter with "remove", "demote" or "promote"
       );
       return res;
     } catch {
