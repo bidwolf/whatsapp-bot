@@ -1,1 +1,0 @@
-exports.COMMAND_PREFIX = '/'
