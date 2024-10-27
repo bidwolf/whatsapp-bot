@@ -1,5 +1,5 @@
 import { WAMessage } from "@whiskeysockets/baileys";
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "./myfunc";
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "./messageTransformer";
 import { TBaileysInMemoryStore } from "./BaileysInMemoryStore";
 import Ban from "../commands/Ban";
 import { BaseCommand } from "../../utils/commands";
