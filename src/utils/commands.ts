@@ -1,5 +1,5 @@
 import { GroupMetadata } from "@whiskeysockets/baileys";
-import { ExtendedWAMessageUpdate } from "../api/class/myfunc";
+import { ExtendedWAMessageUpdate } from "../api/class/messageTransformer";
 
 const { COMMAND_PREFIX } = require("./constants");
 
