@@ -12,19 +12,22 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../../utils/constants";
  */
 export default class Adm extends BaseCommand {
   private readonly logger = pino()
-  async execute(message: ExtendedWAMessageUpdate): Promise<void> {
+  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     if (!message.method) throw new Error('Method not found')
-    if (!this.command_executor) throw new Error('Command executor not found')
-    const groupMetadata = await this.validateCommand({ method: message.method })
-    if (!groupMetadata || !this.args) return
-    const userNumber = typeof this.args === 'string' ? this.args : this.args.join(' ')
+    if (!message.command) throw new Error('Command not found')
+    const command = message.command
+    const { args } = command
+    if (!command.command_executor) throw new Error('Command executor not found')
+    const groupMetadata = await this.validateCommand({ method: message.method, command, instance, store })
+    if (!groupMetadata || !args) return
+    const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber);
       const whatsAppParticipantId = getWhatsAppId(sanitizedNumber);
       const participantExists = groupMetadata.participants.find(
         (p) => p.id === whatsAppParticipantId,
       );
-      if (getWhatsAppId(this.command_executor) === whatsAppParticipantId) {
+      if (getWhatsAppId(command.command_executor) === whatsAppParticipantId) {
         message.reply(
           ERROR_MESSAGES.SELF_ADM_CHANGE
         );
@@ -35,7 +38,7 @@ export default class Adm extends BaseCommand {
         return;
       }
       if (participantExists.admin) {
-        const result = await this.instance.groupParticipantsUpdate(
+        const result = await instance.groupParticipantsUpdate(
           groupMetadata.id,
           [whatsAppParticipantId],
           'demote'
@@ -50,7 +53,7 @@ export default class Adm extends BaseCommand {
         }
         return;
       }
-      const result = await this.instance.groupParticipantsUpdate(
+      const result = await instance.groupParticipantsUpdate(
         groupMetadata.id,
         [whatsAppParticipantId],
         'promote'
@@ -67,17 +70,17 @@ export default class Adm extends BaseCommand {
   }
   async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
     // First, use the store to fetch the group metadata
-    if (!this.groupId) {
+    if (!props.command.groupId) {
       throw new Error('Group ID not found')
     }
-    if (this.command_executor == undefined) {
+    if (props.command.command_executor == undefined) {
       throw new Error('Command executor not found')
     }
 
-    const whatsAppId = getWhatsAppId(this.command_executor)
+    const whatsAppId = getWhatsAppId(props.command.command_executor)
 
     // If the store is not available, use the socket to fetch the group metadata
-    const groupMetadata = await this.instance.groupMetadata(this.groupId)
+    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
     if (!groupMetadata) return null
     const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
     if (isAdmin) {
@@ -91,9 +94,9 @@ export default class Adm extends BaseCommand {
     return null
   }
   private readonly allowedMethods: Method[] = ["raw", "reply", "mention"]
-  constructor(receivedMessage: ExtendedWAMessageUpdate, private readonly instance: ExtendedWaSocket, private readonly store?: TBaileysInMemoryStore) {
+  constructor() {
     super(
-      receivedMessage
+      "adm"
     )
   }
 

@@ -12,11 +12,13 @@ import { ERROR_MESSAGES, INVITE_TEMPLATE, SUCCESS_MESSAGES } from "../../utils/c
  */
 export default class Add extends BaseCommand {
   private readonly logger = pino()
-  async execute(message: ExtendedWAMessageUpdate): Promise<void> {
+  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     if (!message.method) throw new Error('Method not found')
-    const groupMetadata = await this.validateCommand({ method: message.method })
-    if (!groupMetadata || !this.args) return
-    const userNumber = typeof this.args === 'string' ? this.args : this.args.join(' ')
+    if (!message.command) throw new Error('Command not found')
+    const { args } = message.command
+    const groupMetadata = await this.validateCommand({ method: message.method, command: message.command, instance, store })
+    if (!groupMetadata || args) return
+    const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber);
       let newParticipantId = getWhatsAppId(sanitizedNumber);
@@ -37,7 +39,7 @@ export default class Add extends BaseCommand {
       }
       try {
         this.logger.info(`Adding participant ${newParticipantId} to group ${groupMetadata.id}`)
-        const result = await this.instance.groupParticipantsUpdate(
+        const result = await instance.groupParticipantsUpdate(
           groupMetadata.id,
           [newParticipantId],
           'add'
@@ -53,16 +55,16 @@ export default class Add extends BaseCommand {
             message.reply(ERROR_MESSAGES.ADD_DIRECTLY);
             const groupInvite = groupMetadata.inviteCode;
             if (groupInvite) {
-              await this.instance.sendMessage(
+              await instance.sendMessage(
                 newParticipantId,
                 { text: INVITE_TEMPLATE(groupMetadata.subject, groupInvite) },
               );
             } else {
-              const inviteLink = await this.instance.groupInviteCode(
+              const inviteLink = await instance.groupInviteCode(
                 groupMetadata.id
               )
               if (inviteLink) {
-                await this.instance.sendMessage(
+                await instance.sendMessage(
                   newParticipantId,
                   { text: INVITE_TEMPLATE(groupMetadata.subject, inviteLink) },
                 );
@@ -81,16 +83,16 @@ export default class Add extends BaseCommand {
   }
   async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
     // First, use the store to fetch the group metadata
-    if (!this.groupId) {
+    if (!props.command.groupId) {
       throw new Error('Group ID not found')
     }
-    if (this.command_executor == undefined) {
+    if (props.command.command_executor == undefined) {
       throw new Error('Command executor not found')
     }
 
-    const whatsAppId = getWhatsAppId(this.command_executor)
-    if (this.store) {
-      const cachedGroupMetadata = await this.store.fetchGroupMetadata(this.groupId, this.instance)
+    const whatsAppId = getWhatsAppId(props.command.command_executor)
+    if (props.store) {
+      const cachedGroupMetadata = await props.store.fetchGroupMetadata(props.command.groupId, props.instance)
       if (cachedGroupMetadata) {
         const isAdmin = cachedGroupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
         if (isAdmin) {
@@ -99,7 +101,7 @@ export default class Add extends BaseCommand {
       }
     } else {
       // If the store is not available, use the socket to fetch the group metadata
-      const groupMetadata = await this.instance.groupMetadata(this.groupId)
+      const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
       if (!groupMetadata) return null
       const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
       if (isAdmin) {
@@ -114,10 +116,8 @@ export default class Add extends BaseCommand {
     return null
   }
   private readonly allowedMethods: Method[] = ["raw", "reply"]
-  constructor(receivedMessage: ExtendedWAMessageUpdate, private readonly instance: ExtendedWaSocket, private readonly store?: TBaileysInMemoryStore) {
-    super(
-      receivedMessage
-    )
+  constructor() {
+    super("add")
   }
 
 }
