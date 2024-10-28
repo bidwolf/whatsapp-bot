@@ -14,11 +14,14 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../../utils/constants";
  */
 export default class Ban extends BaseCommand {
   private readonly logger = pino()
-  async execute(message: ExtendedWAMessageUpdate): Promise<void> {
+  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     if (!message.method) throw new Error('Method not found')
-    const groupMetadata = await this.validateCommand({ method: message.method })
-    if (!groupMetadata || !this.args) return
-    const userNumber = typeof this.args === 'string' ? this.args : this.args.join(' ')
+    if (!message.command) throw new Error('Command not found')
+    const command = message.command
+    const { args } = command
+    const groupMetadata = await this.validateCommand({ method: message.method, command, instance, store })
+    if (!groupMetadata || !args) return
+    const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber)
       const participant = groupMetadata.participants.find(p => p.id === getWhatsAppId(sanitizedNumber))
@@ -36,7 +39,7 @@ export default class Ban extends BaseCommand {
         await message.reply(ERROR_MESSAGES.BAN_ADMIN)
         return
       }
-      const result = await this.instance.groupParticipantsUpdate(
+      const result = await instance.groupParticipantsUpdate(
         groupMetadata.id,
         [getWhatsAppId(sanitizedNumber)],
         'remove'
@@ -51,16 +54,16 @@ export default class Ban extends BaseCommand {
   }
   async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
     // First, use the store to fetch the group metadata
-    if (!this.groupId) {
+    if (!props.command.groupId) {
       throw new Error('Group ID not found')
     }
-    if (this.command_executor == undefined) {
+    if (props.command.command_executor == undefined) {
       throw new Error('Command executor not found')
     }
 
-    const whatsAppId = getWhatsAppId(this.command_executor)
-    if (this.store) {
-      const cachedGroupMetadata = await this.store.fetchGroupMetadata(this.groupId, this.instance)
+    const whatsAppId = getWhatsAppId(props.command.command_executor)
+    if (props.store) {
+      const cachedGroupMetadata = await props.store.fetchGroupMetadata(props.command.groupId, props.instance)
       if (cachedGroupMetadata) {
         const isAdmin = cachedGroupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
         if (isAdmin) {
@@ -69,7 +72,7 @@ export default class Ban extends BaseCommand {
       }
     } else {
       // If the store is not available, use the socket to fetch the group metadata
-      const groupMetadata = await this.instance.groupMetadata(this.groupId)
+      const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
       if (!groupMetadata) return null
       const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
       if (isAdmin) {
@@ -84,9 +87,9 @@ export default class Ban extends BaseCommand {
     return null
   }
   private readonly allowedMethods: Method[] = ["mention", "reply"]
-  constructor(receivedMessage: ExtendedWAMessageUpdate, private readonly instance: ExtendedWaSocket, private readonly store?: TBaileysInMemoryStore) {
+  constructor() {
     super(
-      receivedMessage
+      "ban"
     )
   }
 

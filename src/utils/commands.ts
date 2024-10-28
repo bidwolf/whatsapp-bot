@@ -1,140 +1,98 @@
 import { GroupMetadata } from "@whiskeysockets/baileys";
-import { ExtendedWAMessageUpdate } from "../api/class/messageTransformer";
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../api/class/messageTransformer";
+import { COMMAND_PREFIX } from "./constants";
+import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
 
-const { COMMAND_PREFIX } = require("./constants");
-
-interface Key {
-  remoteJid?: string | null;
-  fromMe?: boolean | null;
-  participant?: string | null;
-  id?: string | null;
-}
-
-interface SenderKeyDistributionMessage {
-  groupId: string;
-}
-
-interface Message {
-  conversation: string;
-  senderKeyDistributionMessage?: SenderKeyDistributionMessage;
-}
-
-interface ContextInfo {
-  groupMentions: any[];
-  mentionedJid: any[];
-  participant: string;
-  quotedMessage: Message;
-}
-
-interface ExtendedTextMessage {
-  contextInfo: ContextInfo;
-  inviteLinkGroupTypeV2: number;
-  previewType: number;
-  text: string;
-}
-
-interface PayloadMessage {
-  key: Key;
-  message?: Message;
-  participant: string;
-}
-
-interface ExtendedMessage {
-  extendedTextMessage: ExtendedTextMessage;
-  messageContextInfo: any;
-  senderKeyDistributionMessage?: SenderKeyDistributionMessage;
-}
-
-interface ExtendedPayload {
-  key: Key;
-  message?: ExtendedMessage;
-}
-
-interface MentionMessage {
-  extendedTextMessage: ExtendedTextMessage;
-  senderKeyDistributionMessage: SenderKeyDistributionMessage;
-  messageContextInfo: any;
-}
-
-interface PayloadMentionMessage {
-  key: Key;
-  message?: MentionMessage;
-}
 export type BotCommand = {
   command_name: string;
   args: any;
   groupId: string | undefined;
   command_executor: string | undefined;
 }
-export const is_command_mention = (payload: PayloadMentionMessage) => {
-  const is_command = payload.message ? payload.message.extendedTextMessage?.text.startsWith(COMMAND_PREFIX) : null
-  return { command: is_command && payload.message ? payload.message.extendedTextMessage.text : null };
-};
-
-export const is_command = (payload: PayloadMessage) => {
-  const is_command = payload.message ? payload.message.conversation.startsWith(COMMAND_PREFIX) : null
-  return { command: is_command && payload.message ? payload.message.conversation : null };
-};
-
-export const is_command_extended = (payload: ExtendedPayload) => {
-  const is_command = payload.message ? payload.message.extendedTextMessage?.text.startsWith(COMMAND_PREFIX) : null
-  return { command: is_command && payload.message ? payload.message.extendedTextMessage.text : null };
-};
-
-export const get_command = (payload: ExtendedWAMessageUpdate): BotCommand | undefined => {
-  const { command } = is_command(payload);
-  if (!command /* || payload.key.fromMe*/) return undefined;
-  const [command_name, ...args] = command.replace(COMMAND_PREFIX, '').split(' ');
-  return {
-    command_name,
-    args,
-    groupId: payload.message && payload.message.senderKeyDistributionMessage?.groupId ? payload.message.senderKeyDistributionMessage?.groupId : payload.key.remoteJid ?? undefined,
-    command_executor: payload.key.participant == '' ? payload.sender : payload.key.participant ?? undefined
-  };
-};
-
-export const get_command_extended = (payload: ExtendedWAMessageUpdate): BotCommand | undefined => {
-  const { command } = is_command_extended(payload);
-  if (!command /* || payload.key.fromMe*/) return undefined;
-  const command_name = command.replace(COMMAND_PREFIX, '');
-  return {
-    command_name,
-    args: payload.message?.extendedTextMessage.contextInfo.participant,
-    groupId: payload.message && payload.message.senderKeyDistributionMessage?.groupId ? payload.message.senderKeyDistributionMessage?.groupId : payload.key.remoteJid ?? undefined,
-    command_executor: payload.key.participant == '' ? payload.sender && payload.sender != 'unknown' ? payload.sender : payload.msg?.contextInfo?.participant : payload.key.participant ?? undefined
-  };
-};
-
-export const get_command_mention = (payload: ExtendedWAMessageUpdate): BotCommand | undefined => {
-  const { command } = is_command_mention(payload);
-  if (!command /* || payload.key.fromMe*/) return undefined;
-  const command_name = command.replace(COMMAND_PREFIX, '').split(' ')[0];
-  return {
-    command_name,
-    args: payload.message?.extendedTextMessage.contextInfo.mentionedJid,
-    groupId: payload.message && payload.message.senderKeyDistributionMessage?.groupId ? payload.message.senderKeyDistributionMessage?.groupId : payload.key.remoteJid ?? undefined,
-    command_executor: payload.key.participant == '' ? payload.sender : payload.key.participant ?? undefined
-  };
-};
-
-
 export type Method = "mention" | "reply" | "raw"
-export type validateCommandProps = { method: Method }
+export type validateCommandProps = { command: BotCommand, method: Method, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore }
 /**
  * BaseCommand
  * @description Base class for all commands for enforcing a common interface
  */
-export abstract class BaseCommand implements BotCommand {
+interface ICommand {
   command_name: string;
-  args: any[] | undefined;
-  groupId: string | undefined;
-  command_executor: string | undefined;
-  constructor(receivedMessage: ExtendedWAMessageUpdate) {
-    this.command_name = receivedMessage.command?.command_name || '';
-    this.args = receivedMessage.command?.args;
-    this.groupId = receivedMessage.command?.groupId;
-    this.command_executor = receivedMessage.command?.command_executor;
+  execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void>;
+  validateCommand(props: validateCommandProps): Promise<GroupMetadata | null>;
+}
+interface ICommandExtractor {
+  retrieveCommandDetails(): { command: BotCommand | undefined, method: Method }
+}
+export abstract class BaseCommand implements ICommand {
+  command_name: string;
+  constructor(command_name: string) {
+    this.command_name = command_name
   }
-  abstract execute(message: ExtendedWAMessageUpdate): Promise<void>;
+  abstract execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void>;
   abstract validateCommand(props: validateCommandProps): Promise<GroupMetadata | null>;
+}
+export class CommandExtractor implements ICommandExtractor {
+  private isMention = () => {
+    const is_command = this.payload.message ? this.payload.message.extendedTextMessage?.text.startsWith(COMMAND_PREFIX) : null
+    return { command: is_command && this.payload.message ? this.payload.message.extendedTextMessage.text : null };
+  };
+
+  private isRaw = () => {
+    const is_command = this.payload.message ? this.payload.message.conversation.startsWith(COMMAND_PREFIX) : null
+    return { command: is_command && this.payload.message ? this.payload.message.conversation : null };
+  };
+
+  private isExtended = () => {
+    const is_command = this.payload.message ? this.payload.message.extendedTextMessage?.text.startsWith(COMMAND_PREFIX) : null
+    return { command: is_command && this.payload.message ? this.payload.message.extendedTextMessage.text : null };
+  };
+  private getRawCommand = (): BotCommand | undefined => {
+    const { command } = this.isRaw();
+    if (!command /* || this.payload.key.fromMe*/) return undefined;
+    const [command_name, ...args] = command.replace(COMMAND_PREFIX, '').split(' ');
+    return {
+      command_name,
+      args,
+      groupId: this.payload.message && this.payload.message.senderKeyDistributionMessage?.groupId ? this.payload.message.senderKeyDistributionMessage?.groupId : this.payload.key.remoteJid ?? undefined,
+      command_executor: this.payload.key.participant == '' ? this.payload.sender : this.payload.key.participant ?? undefined
+    };
+  };
+  private getExtendedCommand = (): BotCommand | undefined => {
+    const { command } = this.isExtended();
+    if (!command /* || this.payload.key.fromMe*/) return undefined;
+    const command_name = command.replace(COMMAND_PREFIX, '');
+    return {
+      command_name,
+      args: this.payload.message?.extendedTextMessage.contextInfo.participant,
+      groupId: this.payload.message && this.payload.message.senderKeyDistributionMessage?.groupId ? this.payload.message.senderKeyDistributionMessage?.groupId : this.payload.key.remoteJid ?? undefined,
+      command_executor: this.payload.key.participant == '' ? this.payload.sender && this.payload.sender != 'unknown' ? this.payload.sender : this.payload.msg?.contextInfo?.participant : this.payload.key.participant ?? undefined
+    };
+  };
+  private getMentionCommand = (): BotCommand | undefined => {
+    const { command } = this.isMention();
+    if (!command /* || this.payload.key.fromMe*/) return undefined;
+    const command_name = command.replace(COMMAND_PREFIX, '').split(' ')[0];
+    return {
+      command_name,
+      args: this.payload.message?.extendedTextMessage.contextInfo.mentionedJid,
+      groupId: this.payload.message && this.payload.message.senderKeyDistributionMessage?.groupId ? this.payload.message.senderKeyDistributionMessage?.groupId : this.payload.key.remoteJid ?? undefined,
+      command_executor: this.payload.key.participant == '' ? this.payload.sender : this.payload.key.participant ?? undefined
+    };
+  };
+  public retrieveCommandDetails = (): { command: BotCommand | undefined, method: Method } => {
+    const extendedCommand = this.getExtendedCommand();
+    const mentionCommand = this.getMentionCommand();
+    const rawCommand = this.getRawCommand();
+    if (extendedCommand && extendedCommand?.args) {
+      return { command: extendedCommand, method: 'reply' };
+    }
+    if (mentionCommand && mentionCommand?.args) {
+      return { command: mentionCommand, method: 'mention' };
+    }
+    if (rawCommand && rawCommand?.args) {
+      return { command: rawCommand, method: 'raw' };
+    }
+    return rawCommand ? { command: rawCommand, method: 'raw' } : mentionCommand ? { command: mentionCommand, method: 'mention' } : { command: extendedCommand, method: 'reply' }
+  }
+  constructor(private readonly payload: ExtendedWAMessageUpdate) { }
 }
