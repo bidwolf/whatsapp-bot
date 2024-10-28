@@ -213,7 +213,7 @@ class WhatsAppInstance {
       );
       logger.info("Group unregistered");
     } catch (error) {
-      logger.error(`Error unregistering group ${error}`);
+      logger.error(`Error unregister group ${error}`);
     }
   }
   getAllAvailableGroups() {
@@ -351,8 +351,8 @@ class WhatsAppInstance {
         ) {
           await this.init();
         } else {
-          await this.collection.drop().then((r) => {
-            logger.info("STATE: Droped collection");
+          await this.collection.drop().then(() => {
+            logger.info("STATE: Dropped collection");
           });
           this.instance.online = false;
         }
@@ -472,7 +472,7 @@ class WhatsAppInstance {
       });
     });
 
-    // on new mssage
+    // on new message
     sock?.ev.on("messages.upsert", async (receivedMessages) => {
       //console.log('messages.upsert')
       //console.log(m)
@@ -508,8 +508,7 @@ class WhatsAppInstance {
           parsedMessage.isGroup &&
           parsedMessage.command &&
           parsedMessage.command.command_name &&
-          parsedMessage.command.command_executor &&
-          parsedMessage.command.args
+          parsedMessage.command.command_executor
         ) {
           const isGroupAvailable = this.isGroupAvailable(
             parsedMessage.command.groupId,
@@ -530,7 +529,7 @@ class WhatsAppInstance {
       }
       const m = receivedMessages.messages[0];
       try {
-        logger.debug(`📩 Upserted message:`, m);
+        logger.debug(`📩 Upsert message:`, m);
       } catch (error) {
         logger.error(`❌ Error handling messages.upsert event:`, error);
       }
