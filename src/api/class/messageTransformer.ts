@@ -31,9 +31,7 @@ import { sizeFormatter } from 'human-readable';
 import Jimp from 'jimp';
 
 import {
-  get_command,
-  get_command_extended,
-  get_command_mention, Method, type BotCommand
+  CommandExtractor, Method, type BotCommand
 } from "../../utils/commands";
 import { TBaileysInMemoryStore } from "./BaileysInMemoryStore";
 
@@ -233,29 +231,6 @@ export const getSizeMedia = (path: string | Buffer): Promise<string> => {
     }
   });
 };
-export const extractCommandAndMethod = (messageUpdate: ExtendedWAMessageUpdate): BotCommand | undefined => {
-  if (messageUpdate.message) {
-    const normal = get_command(messageUpdate);
-    if (normal?.command_executor && normal?.args) {
-      messageUpdate.method = 'raw';
-      return normal
-    };
-    const extended = get_command_extended(messageUpdate);
-    if (extended?.command_executor && extended?.args) {
-      messageUpdate.method = 'reply';
-      return extended
-    };
-    const mention = get_command_mention(messageUpdate);
-    if (mention?.command_executor && mention?.args) {
-      messageUpdate.method = 'mention';
-      return mention
-    };
-  }
-  return undefined;
-};
-export const extractMethod = (messageUpdate: ExtendedWAMessageUpdate): Method => {
-  return messageUpdate.quoted ? 'reply' : messageUpdate.mentionedJid ? 'mention' : 'raw';
-}
 export const parseMention = (text: string = ''): string[] => {
   return [...text.matchAll(/@([0-9]{5,16}|0)/g)].map(v => v[1] + '@s.whatsapp.net');
 };
@@ -344,7 +319,10 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
 
   messageUpdate.copyNForward = (jid: string = messageUpdate.chat, forceForward: boolean = false, options: object = {}) => conn.copyNForward(jid, messageUpdate, forceForward, options);
 
-  messageUpdate.command = extractCommandAndMethod(messageUpdate);
+  const commandExtractor = new CommandExtractor(messageUpdate);
+  const commandDetails = commandExtractor.retrieveCommandDetails();
+  messageUpdate.command = commandDetails.command;
+  messageUpdate.method = commandDetails.method;
   return messageUpdate;
 };
 
