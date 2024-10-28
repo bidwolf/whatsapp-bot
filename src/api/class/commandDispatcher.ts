@@ -5,6 +5,7 @@ import Ban from "../commands/Ban";
 import { BaseCommand } from "../../utils/commands";
 import Add from "../commands/Add";
 import Adm from "../commands/Adm";
+import GroupLink from "../commands/Link";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -15,13 +16,15 @@ const pino = require('pino')()
 class CommandDispatcher {
     private readonly logger = pino
     commands: Map<string, BaseCommand> = new Map()
-    constructor(instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, chatUpdate: WAMessage[], store: TBaileysInMemoryStore) {
-        const ban = new Ban(this.m, instance, store)
-        const add = new Add(this.m, instance, store)
-        const adm = new Adm(this.m, instance, store)
-        this.commands.set('ban', ban)
-        this.commands.set('add', add)
-        this.commands.set('adm', adm)
+    constructor(private readonly instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, chatUpdate: WAMessage[], private readonly store: TBaileysInMemoryStore) {
+        const ban = new Ban()
+        const add = new Add()
+        const adm = new Adm()
+        const link = new GroupLink()
+        this.commands.set(ban.command_name, ban)
+        this.commands.set(add.command_name, add)
+        this.commands.set(adm.command_name, adm)
+        this.commands.set(link.command_name, link)
     }
     async run() {
         const command = this.m.command
@@ -29,7 +32,7 @@ class CommandDispatcher {
         const cmd = this.commands.get(command.command_name)
         if (!cmd) return
         try {
-            await cmd.execute(this.m)
+            await cmd.execute(this.m, this.instance, this.store)
         } catch (e) {
             this.logger.error(e)
         }
