@@ -29,14 +29,14 @@ export default class Ban extends BaseCommand {
         this.logger.info(
           `User ${sanitizedNumber} not found in group ${groupMetadata.id}`
         )
-        await message.reply(ERROR_MESSAGES.NOT_FOUND)
+        message.reply(ERROR_MESSAGES.NOT_FOUND)
         return
       }
       if (participant.admin) {
         this.logger.info(
           `Cannot ban admin ${sanitizedNumber}`
         )
-        await message.reply(ERROR_MESSAGES.BAN_ADMIN)
+        message.reply(ERROR_MESSAGES.BAN_ADMIN)
         return
       }
       const result = await instance.groupParticipantsUpdate(
@@ -46,7 +46,7 @@ export default class Ban extends BaseCommand {
       )
       if (result && result.length > 0 && result[0].status == '200') {
         this.logger.info("Participant removed");
-        await message.reply(SUCCESS_MESSAGES.BAN);
+        message.reply(SUCCESS_MESSAGES.BAN);
       } else {
         this.logger.info("Participant not removed");
       }

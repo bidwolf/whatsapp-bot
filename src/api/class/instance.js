@@ -59,6 +59,9 @@ class WhatsAppInstance {
       return !!msg.syncType;
     },
     generateHighQualityLinkPreview: true,
+    cachedGroupMetadata: async (jid) => {
+      return store?.fetchGroupMetadata(jid, this.instance.sock);
+    },
     getMessage: async (key) => {
       if (store) {
         const msg = await store.loadMessage(key.remoteJid, key.id);

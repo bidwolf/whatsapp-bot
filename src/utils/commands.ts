@@ -46,10 +46,17 @@ export class CommandExtractor implements ICommandExtractor {
     const is_command = this.payload.message ? this.payload.message.extendedTextMessage?.text.startsWith(COMMAND_PREFIX) : null
     return { command: is_command && this.payload.message ? this.payload.message.extendedTextMessage.text : null };
   };
+  private extractCommandDetails = (command: string): { command_name: string, args: string[] } => {
+    const commandWithoutPrefix = command.slice(COMMAND_PREFIX.length).trim();
+    const firstSpaceIndex = commandWithoutPrefix.indexOf(' ');
+    const command_name = firstSpaceIndex === -1 ? commandWithoutPrefix : commandWithoutPrefix.slice(0, firstSpaceIndex);
+    const args = firstSpaceIndex === -1 ? [] : commandWithoutPrefix.slice(firstSpaceIndex + 1).split(/\s+/);
+    return { command_name, args };
+  };
   private getRawCommand = (): BotCommand | undefined => {
     const { command } = this.isRaw();
     if (!command /* || this.payload.key.fromMe*/) return undefined;
-    const [command_name, ...args] = command.replace(COMMAND_PREFIX, '').split(' ');
+    const { command_name, args } = this.extractCommandDetails(command);
     return {
       command_name,
       args,
@@ -71,7 +78,7 @@ export class CommandExtractor implements ICommandExtractor {
   private getMentionCommand = (): BotCommand | undefined => {
     const { command } = this.isMention();
     if (!command /* || this.payload.key.fromMe*/) return undefined;
-    const command_name = command.replace(COMMAND_PREFIX, '').split(' ')[0];
+    const command_name = this.extractCommandDetails(command).command_name;
     return {
       command_name,
       args: this.payload.message?.extendedTextMessage.contextInfo.mentionedJid,

@@ -17,7 +17,7 @@ export default class Add extends BaseCommand {
     if (!message.command) throw new Error('Command not found')
     const { args } = message.command
     const groupMetadata = await this.validateCommand({ method: message.method, command: message.command, instance, store })
-    if (!groupMetadata || args) return
+    if (!groupMetadata || !args) return
     const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber);
@@ -34,7 +34,7 @@ export default class Add extends BaseCommand {
           this.logger.info(
             `No phone number found in vcard reply`
           )
-          await message.reply(`${ERROR_MESSAGES.NO_VCARD} para adicionar um novo membro`);
+          message.reply(`${ERROR_MESSAGES.NO_VCARD} para adicionar um novo membro`);
         }
       }
       try {
@@ -47,7 +47,7 @@ export default class Add extends BaseCommand {
         if (result && result.length > 0) {
           if (result[0].status == '200') {
             this.logger.info("Participant added");
-            await message.reply(
+            message.reply(
               SUCCESS_MESSAGES.ADD
             );
           } else if (result[0].status == '403') {
@@ -72,7 +72,7 @@ export default class Add extends BaseCommand {
             }
           } else if (result[0].status == '409') {
             this.logger.info("Participant not added");
-            await message.reply(
+            message.reply(
               ERROR_MESSAGES.ALREADY_EXISTS);
           }
         }

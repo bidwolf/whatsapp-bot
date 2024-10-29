@@ -7,6 +7,7 @@ import Add from "../commands/Add";
 import Adm from "../commands/Adm";
 import GroupLink from "../commands/Link";
 import RevokeLink from "../commands/RevokeLink";
+import Description from "../commands/Description";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -23,11 +24,13 @@ class CommandDispatcher {
         const adm = new Adm()
         const link = new GroupLink()
         const revokeLink = new RevokeLink()
+        const description = new Description()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
         this.commands.set(link.command_name, link)
         this.commands.set(revokeLink.command_name, revokeLink)
+        this.commands.set(description.command_name, description)
     }
     async run() {
         const command = this.m.command
