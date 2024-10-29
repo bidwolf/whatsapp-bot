@@ -10,6 +10,7 @@ import RevokeLink from "../commands/RevokeLink";
 import Description from "../commands/Description";
 import Rename from "../commands/Rename";
 import Rules from "../commands/Rules";
+import ToggleChat from "../commands/ToggleChat";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -29,6 +30,7 @@ class CommandDispatcher {
         const description = new Description()
         const rename = new Rename()
         const rules = new Rules()
+        const toggleChat = new ToggleChat()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -37,6 +39,7 @@ class CommandDispatcher {
         this.commands.set(description.command_name, description)
         this.commands.set(rename.command_name, rename)
         this.commands.set(rules.command_name, rules)
+        this.commands.set(toggleChat.command_name, toggleChat)
     }
     async run() {
         const command = this.m.command
