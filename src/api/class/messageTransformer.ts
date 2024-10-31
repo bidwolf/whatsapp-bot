@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-import { proto, getContentType, WAMessageUpdate, WASocket, AnyMessageContent } from "@whiskeysockets/baileys";
+import { proto, getContentType, WAMessageUpdate, WASocket, AnyMessageContent } from "@whiskeysockets/baileys"
 import pino from 'pino';
 import fs from 'fs';
 import axios from 'axios';
 import moment from 'moment-timezone';
 import { sizeFormatter } from 'human-readable';
 import Jimp from 'jimp';
-
+import { MessageFilter } from "../../utils/MessageFilter";
 import {
   CommandExtractor, Method, type BotCommand
 } from "../../utils/commands";
@@ -79,6 +79,8 @@ export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   // getInviteCodeGroup?: (groupId: string) => Promise<string | null>;
   command: BotCommand | undefined;
   method?: Method
+  isOffensive?: boolean;
+  delete?: () => Promise<any>;
 };
 export interface ExtendedWaSocket extends WASocket {
   copyNForward: (jid: string, message: any, forceForward: boolean, options: object) => Promise<any>;
@@ -130,6 +132,7 @@ export const fetchJson = async (url: string, options?: object): Promise<any> => 
     return err;
   }
 };
+
 export const runtime = (seconds: number): string => {
   seconds = Number(seconds);
   const d = Math.floor(seconds / (3600 * 24));
@@ -261,6 +264,7 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
     messageUpdate.mtype = getContentType(messageUpdate.message);
     const contentTypeOnce = messageUpdate?.mtype && messageUpdate.mtype == 'viewOnceMessage' ? getContentType(messageUpdate.message[messageUpdate?.mtype]) : null;
     messageUpdate.msg = messageUpdate.mtype == 'viewOnceMessage' && messageUpdate.message[messageUpdate.mtype] && contentTypeOnce ? messageUpdate.message[messageUpdate.mtype].message[contentTypeOnce] : messageUpdate?.mtype ? messageUpdate.message[messageUpdate.mtype] : null;
+    if (messageUpdate.msg?.text === '') return messageUpdate;
     messageUpdate.body = messageUpdate.message.conversation || messageUpdate.msg?.caption || messageUpdate.msg?.text || (messageUpdate.mtype == 'listResponseMessage' && messageUpdate.msg?.singleSelectReply?.selectedRowId) || (messageUpdate.mtype == 'buttonsResponseMessage' && messageUpdate.msg?.selectedButtonId) || (messageUpdate.mtype == 'viewOnceMessage' && messageUpdate.msg?.caption) || messageUpdate.text;
     const quoted = messageUpdate.quoted = messageUpdate.msg?.contextInfo ? messageUpdate.msg?.contextInfo?.quotedMessage : null;
     messageUpdate.mentionedJid = messageUpdate.msg?.contextInfo ? messageUpdate.msg?.contextInfo?.mentionedJid : [];
@@ -318,11 +322,17 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
   messageUpdate.copy = () => transformMessageUpdate(conn, M.fromObject(M.toObject(messageUpdate)) as unknown as ExtendedWAMessageUpdate, store);
 
   messageUpdate.copyNForward = (jid: string = messageUpdate.chat, forceForward: boolean = false, options: object = {}) => conn.copyNForward(jid, messageUpdate, forceForward, options);
-
+  messageUpdate.delete = async () => {
+    if (!messageUpdate.copy) return;
+    const message = messageUpdate.copy()
+    if (!message) return;
+    return conn.sendMessage(message.chat, { delete: message.key });
+  }
   const commandExtractor = new CommandExtractor(messageUpdate);
   const commandDetails = commandExtractor.retrieveCommandDetails();
   messageUpdate.command = commandDetails.command;
   messageUpdate.method = commandDetails.method;
+  if (messageUpdate.text) messageUpdate.isOffensive = new MessageFilter().containsOffensiveLanguage(messageUpdate.text || '');
   return messageUpdate;
 };
 
