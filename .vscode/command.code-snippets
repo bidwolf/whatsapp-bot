@@ -10,7 +10,7 @@
 			"async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {",
 			"throw new Error('Method not implemented.');",
 			"}",
-			"async executeCommand(props: executeCommandProps): Promise<void> {",
+			"async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {",
 			"throw new Error('Method not implemented.');",
 			"}",
 			"constructor() {",

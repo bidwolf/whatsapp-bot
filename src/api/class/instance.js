@@ -1,4 +1,5 @@
 /* eslint-disable no-unsafe-optional-chaining */
+require("@whiskeysockets/baileys")
 const QRCode = require("qrcode");
 const pino = require("pino");
 const {
@@ -7,7 +8,7 @@ const {
   proto,
   isJidBroadcast,
   DisconnectReason,
-  isJidNewsletter,
+  // isJidNewsletter,
 } = require("@whiskeysockets/baileys");
 const { transformMessageUpdate } = require("./messageTransformer");
 const path = require("path");
@@ -19,7 +20,6 @@ const Group = require("../models/group.model");
 const axios = require("axios");
 const config = require("../../config/config");
 const fs = require("fs");
-const downloadMessage = require("../helper/downloadMsg");
 const logger = require("pino")();
 const useMongoDBAuthState = require("../helper/mongoAuthState");
 const { handleRemoval } = require("../../utils/listeners");
@@ -47,7 +47,7 @@ class WhatsAppInstance {
     defaultQueryTimeoutMs: undefined,
     // comment the line below out
     shouldIgnoreJid: (jid) =>
-      !jid || isJidBroadcast(jid) || isJidNewsletter(jid),
+      !jid || isJidBroadcast(jid) /*|| isJidNewsletter(jid)*/,
     // implement to handle retries
     printQRInTerminal: false,
     msgRetryCounterCache,
@@ -129,6 +129,7 @@ class WhatsAppInstance {
     this.socketConfig.auth = this.authState.state;
     this.socketConfig.browser = Object.values(config.browser);
     this.instance.sock = makeWASocket(this.socketConfig);
+    this.instance.sock.public = true;
     store?.bind(this.instance.sock.ev);
     this.setHandler();
     return this;
@@ -139,6 +140,8 @@ class WhatsAppInstance {
       this.instance.availableGroups = groups.map((group) => ({
         groupId: group.groupId,
         blockedCommands: group.blockedCommands || [],
+        allowOffenses: group.allowOffenses || false,
+        blackListedUsers: group.blackListedUsers || [],
       }));
       logger.info(
         `Available groups loaded ${this.instance.availableGroups.length}`,
@@ -179,15 +182,7 @@ class WhatsAppInstance {
    */
   async registerGroup(groupId) {
     try {
-      const existentGroup = await Group.findOne({
-        key: this.key,
-        groupId: groupId,
-      }).exec();
-      if (existentGroup) {
-        logger.info("Group already registered");
-        return;
-      }
-      const group = new Group({ key: this.key, groupId: groupId });
+      const group = new Group({ key: this.key, groupId: groupId});
       await group.save();
       this.instance.availableGroups.push(group);
       logger.info("Group registered");
@@ -507,101 +502,116 @@ class WhatsAppInstance {
           latestReceivedMessage,
           store,
         );
-        if (
-          parsedMessage.isGroup &&
-          parsedMessage.command &&
-          parsedMessage.command.command_name &&
-          parsedMessage.command.command_executor
-        ) {
-          const isGroupAvailable = this.isGroupAvailable(
-            parsedMessage.command.groupId,
+        if (parsedMessage.isGroup) {
+          await this.loadAvailableGroups();
+          const groupAvailable = this.isGroupAvailable(
+            parsedMessage.key.remoteJid,
           );
-          if (!isGroupAvailable) {
+          if (!groupAvailable) {
             logger.info("Group not available");
             return;
           }
+          logger.info(
+            `Group ${parsedMessage.key.remoteJid} available and offensive messages are ${groupAvailable.allowOffenses ? "allowed" : "blocked"}`,
+          );
+          if (parsedMessage.isOffensive && !groupAvailable.allowOffenses) {
+            logger.info("Offensive message blocked");
+            try {
+              parsedMessage.delete()
+            } catch (e) {
+              this.logger.error(e);
+            }
+            return;
+          }
+          if (
+            parsedMessage.command &&
+            parsedMessage.command.command_name &&
+            parsedMessage.command.command_executor
+          ) {
+            require("./commandDispatcher")(
+              this.instance.sock,
+              parsedMessage,
+              groupAvailable,
+              store,
+            );
+          }
         }
-        require("./commandDispatcher")(
-          this.instance.sock,
-          parsedMessage,
-          receivedMessages,
-          store,
-        );
       } catch (err) {
         console.log(err);
       }
-      const m = receivedMessages.messages[0];
-      try {
-        logger.debug(`📩 Upsert message:`, m);
-      } catch (error) {
-        logger.error(`❌ Error handling messages.upsert event:`, error);
-      }
-      if (receivedMessages.type === "prepend")
-        this.instance.messages.unshift(...receivedMessages.messages);
-      if (receivedMessages.type !== "notify") return;
+      return;
+      // const m = receivedMessages.messages[0];
+      // try {
+      //   logger.debug(`📩 Upsert message:`, m);
+      // } catch (error) {
+      //   logger.error(`❌ Error handling messages.upsert event:`, error);
+      // }
+      // if (receivedMessages.type === "prepend")
+      //   this.instance.messages.unshift(...receivedMessages.messages);
+      // if (receivedMessages.type !== "notify") return;
 
-      // https://adiwajshing.github.io/Baileys/#reading-messages
-      if (config.markMessagesRead) {
-        const unreadMessages = receivedMessages.messages.map((msg) => {
-          return {
-            remoteJid: msg.key.remoteJid,
-            id: msg.key.id,
-            participant: msg.key?.participant,
-          };
-        });
-        await sock.readMessages(unreadMessages);
-      }
+      // // https://adiwajshing.github.io/Baileys/#reading-messages
+      // if (config.markMessagesRead) {
+      //   const unreadMessages = receivedMessages.messages.map((msg) => {
+      //     return {
+      //       remoteJid: msg.key.remoteJid,
+      //       id: msg.key.id,
+      //       participant: msg.key?.participant,
+      //     };
+      //   });
+      //   await sock.readMessages(unreadMessages);
+      // }
 
-      this.instance.messages.unshift(...receivedMessages.messages);
+      // this.instance.messages.unshift(...receivedMessages.messages);
 
-      for (const msg of receivedMessages.messages) {
-        if (!msg.message) continue;
+      // for (const msg of receivedMessages.messages) {
+      //   if (!msg.message) continue;
 
-        const messageType = Object.keys(msg.message)[0];
+      //   const messageType = Object.keys(msg.message)[0];
 
-        if (["protocolMessage"].includes(messageType)) {
-          continue;
-        }
+      //   if (["protocolMessage"].includes(messageType)) {
+      //     continue;
+      //   }
 
-        const webhookData = {
-          key: this.key,
-          ...msg,
-        };
+      //   const webhookData = {
+      //     key: this.key,
+      //     ...msg,
+      //   };
 
-        if (config.webhookBase64) {
-          switch (messageType) {
-            case "imageMessage":
-              webhookData["msgContent"] = await downloadMessage(
-                msg.message.imageMessage,
-                "image",
-              );
-              break;
-            case "videoMessage":
-              webhookData["msgContent"] = await downloadMessage(
-                msg.message.videoMessage,
-                "video",
-              );
-              break;
-            case "audioMessage":
-              webhookData["msgContent"] = await downloadMessage(
-                msg.message.audioMessage,
-                "audio",
-              );
-              break;
-            default:
-              webhookData["msgContent"] = "";
-              break;
-          }
-        }
+      //   if (config.webhookBase64) {
+      //     switch (messageType) {
+      //       case "imageMessage":
+      //         webhookData["msgContent"] = await downloadMessage(
+      //           msg.message.imageMessage,
+      //           "image",
+      //         );
+      //         break;
+      //       case "videoMessage":
+      //         webhookData["msgContent"] = await downloadMessage(
+      //           msg.message.videoMessage,
+      //           "video",
+      //         );
+      //         break;
+      //       case "audioMessage":
+      //         webhookData["msgContent"] = await downloadMessage(
+      //           msg.message.audioMessage,
+      //           "audio",
+      //         );
+      //         break;
+      //       default:
+      //         webhookData["msgContent"] = "";
+      //         break;
+      //     }
+      //   }
 
-        if (
-          ["all", "messages", "messages.upsert"].some((e) =>
-            config.webhookAllowedEvents.includes(e),
-          )
-        ) {
-          await this.SendWebhook("message", webhookData, this.key);
-        }
-      }
+      //   if (
+      //     ["all", "messages", "messages.upsert"].some((e) =>
+      //       config.webhookAllowedEvents.includes(e),
+      //     )
+      //   ) {
+      //     await this.SendWebhook("message", webhookData, this.key);
+      //   }
+      // }
     });
 
     sock?.ev.on("messages.update", async (messages) => {

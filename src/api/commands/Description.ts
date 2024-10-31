@@ -3,6 +3,7 @@ import { BaseCommand, Method, validateCommandProps } from '../../utils/commands'
 import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
 import { GroupMetadata } from '@whiskeysockets/baileys';
+import { getWhatsAppId } from '../../utils/getWhatsappId';
 export default class Description extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     const { command, method } = message
@@ -33,13 +34,15 @@ export default class Description extends BaseCommand {
     if (!props.command.command_executor) {
       throw new Error('Command executor not found')
     }
+    const whatsAppId = getWhatsAppId(props.command.command_executor)
+
     if (props.store) {
       const groupMetadata = await props.store.fetchGroupMetadata(props.command.groupId, props.instance)
       if (groupMetadata) {
-        const isAdmin = groupMetadata.participants.find(p => p.id === props.command.command_executor)?.admin
+        const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId)?.admin
         if (isAdmin) {
           const isAllowed = this.allowedMethods.includes(props.method)
-          this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${props.command.command_executor}`)
+          this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${whatsAppId}`)
           return isAllowed ? groupMetadata : null
         }
       }
@@ -49,10 +52,10 @@ export default class Description extends BaseCommand {
       if (!groupMetadata) {
         throw new Error('Group metadata not found')
       }
-      const isAdmin = groupMetadata.participants.find(p => p.id === props.command.command_executor)?.admin
+      const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId)?.admin
       if (!isAdmin) {
         const isAllowed = this.allowedMethods.includes(props.method)
-        this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${props.command.command_executor}`)
+        this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${whatsAppId}`)
         return isAllowed ? groupMetadata : null
       }
       return null
