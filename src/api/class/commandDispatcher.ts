@@ -1,4 +1,3 @@
-import { WAMessage } from "@whiskeysockets/baileys";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "./messageTransformer";
 import { TBaileysInMemoryStore } from "./BaileysInMemoryStore";
 import Ban from "../commands/Ban";
@@ -11,6 +10,9 @@ import Description from "../commands/Description";
 import Rename from "../commands/Rename";
 import Rules from "../commands/Rules";
 import ToggleChat from "../commands/ToggleChat";
+const Group = require("../models/group.model");
+import { IGroup } from "../models/group.model";
+import Offenses from "../commands/Offenses";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -21,7 +23,7 @@ const pino = require('pino')()
 class CommandDispatcher {
     private readonly logger = pino
     commands: Map<string, BaseCommand> = new Map()
-    constructor(private readonly instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, chatUpdate: WAMessage[], private readonly store: TBaileysInMemoryStore) {
+    constructor(private readonly instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, private readonly group: IGroup, private readonly store: TBaileysInMemoryStore) {
         const ban = new Ban()
         const add = new Add()
         const adm = new Adm()
@@ -31,6 +33,7 @@ class CommandDispatcher {
         const rename = new Rename()
         const rules = new Rules()
         const toggleChat = new ToggleChat()
+        const offenses = new Offenses()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -40,6 +43,7 @@ class CommandDispatcher {
         this.commands.set(rename.command_name, rename)
         this.commands.set(rules.command_name, rules)
         this.commands.set(toggleChat.command_name, toggleChat)
+        this.commands.set(offenses.command_name, offenses)
     }
     async run() {
         const command = this.m.command
@@ -53,9 +57,9 @@ class CommandDispatcher {
         }
     }
 }
-const initializeCommandDispatcher = async (instance: ExtendedWaSocket, m: ExtendedWAMessageUpdate, chatUpdate: WAMessage[], store: TBaileysInMemoryStore) => {
+const initializeCommandDispatcher = async (instance: ExtendedWaSocket, m: ExtendedWAMessageUpdate, group: IGroup, store: TBaileysInMemoryStore) => {
     try {
-        const app = new CommandDispatcher(instance, m, chatUpdate, store);
+        const app = new CommandDispatcher(instance, m, group, store);
         app.run()
     } catch (e) {
         console.error(e);
