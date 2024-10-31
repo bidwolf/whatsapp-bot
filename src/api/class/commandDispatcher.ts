@@ -13,6 +13,7 @@ import ToggleChat from "../commands/ToggleChat";
 const Group = require("../models/group.model");
 import { IGroup } from "../models/group.model";
 import Offenses from "../commands/Offenses";
+import DeleteMessage from "../commands/DeleteMessage";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -34,6 +35,7 @@ class CommandDispatcher {
         const rules = new Rules()
         const toggleChat = new ToggleChat()
         const offenses = new Offenses()
+        const deleteMessage = new DeleteMessage()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -44,6 +46,7 @@ class CommandDispatcher {
         this.commands.set(rules.command_name, rules)
         this.commands.set(toggleChat.command_name, toggleChat)
         this.commands.set(offenses.command_name, offenses)
+        this.commands.set(deleteMessage.command_name, deleteMessage)
     }
     async run() {
         const command = this.m.command

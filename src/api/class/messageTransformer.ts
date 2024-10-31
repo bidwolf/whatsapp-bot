@@ -55,6 +55,7 @@ export type MSG = proto.IMessage & {
   url?: string;
 
 }
+
 export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   id?: string | null;
   isBaileys?: boolean;
@@ -65,7 +66,7 @@ export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   participant?: string;
   mtype?: string;
   msg?: MSG;
-  message?: any
+  message?: any;
   body?: string;
   quoted?: any;
   mentionedJid?: string[];
@@ -76,9 +77,8 @@ export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   copyNForward?: (jid?: string, forceForward?: boolean, options?: object) => Promise<any>;
   getQuotedObj?: () => Promise<ExtendedWAMessageUpdate | false>;
   getQuotedMessage?: () => Promise<ExtendedWAMessageUpdate | false>;
-  // getInviteCodeGroup?: (groupId: string) => Promise<string | null>;
   command: BotCommand | undefined;
-  method?: Method
+  method?: Method;
   isOffensive?: boolean;
   delete?: () => Promise<any>;
 };
@@ -292,7 +292,9 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
       messageUpdate.quoted.mentionedJid = messageUpdate.msg?.contextInfo ? messageUpdate.msg?.contextInfo?.mentionedJid : [];
       messageUpdate.getQuotedObj = messageUpdate.getQuotedMessage = async () => {
         if (!messageUpdate.quoted.id) return false;
-        const q = await store.loadMessage(messageUpdate.chat, messageUpdate.quoted.id) as ExtendedWAMessageUpdate;
+        const chatGroup = store.messages[messageUpdate.quoted.chat]
+        if (!chatGroup) return false;
+        let q = chatGroup?.get(messageUpdate.quoted.id) || store.loadMessage(messageUpdate.quoted.chat, messageUpdate.quoted.id) as unknown as ExtendedWAMessageUpdate;
         if (!q) return false;
         return transformMessageUpdate(conn, q, store);
       };
