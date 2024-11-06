@@ -26,6 +26,7 @@ const useMongoDBAuthState = require("../helper/mongoAuthState");
 const { handleRemoval } = require("../../utils/listeners");
 const useStore = !process.argv.includes("--no-store");
 const NodeCache = require("node-cache");
+const Message = require("../models/message.model");
 
 const store = useStore ? makeInMemoryStore({ logger }) : undefined;
 
@@ -218,6 +219,7 @@ class WhatsAppInstance {
   getAllAvailableGroups() {
     return this.instance.availableGroups;
   }
+  
   isGroupAvailable(groupId) {
     return this.instance.availableGroups.find((g) => g.groupId === groupId);
   }
@@ -473,8 +475,6 @@ class WhatsAppInstance {
 
     // on new message
     sock?.ev.on("messages.upsert", async (receivedMessages) => {
-      //console.log('messages.upsert')
-      //console.log(m)
       try {
         const latestReceivedMessage = receivedMessages.messages[0];
         if (!latestReceivedMessage.message) return;
@@ -524,6 +524,21 @@ class WhatsAppInstance {
             }
             return;
           }
+          // Salvar a mensagem no MongoDB
+          const newMessage = new Message({
+            remoteJid: parsedMessage.chat,
+            fromMe: parsedMessage.fromMe,
+            id: parsedMessage.id,
+            participant: parsedMessage.participant,
+            message: parsedMessage.text,
+            timestamp: new Date()
+          });
+          await newMessage.save();
+          // Relacionar a mensagem com o grupo
+
+          const group = await Group.findOne({ key: this.key, groupId: parsedMessage.key.remoteJid }).exec();
+          group.messages.push(newMessage._id);
+          await group.save();
           if (
             parsedMessage.command &&
             parsedMessage.command.command_name &&
@@ -1309,6 +1324,24 @@ class WhatsAppInstance {
     }
   }
 }
+const deleteOldMessages = async () => {
+  const retentionPeriod = 30; // Número de dias para manter as mensagens
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - retentionPeriod);
+
+  try {
+    const oldMessages = await Message.find({ timestamp: { $lt: cutoffDate } });
+    for (const message of oldMessages) {
+      await message.remove();
+    }
+    console.log(`Deleted ${oldMessages.length} old messages`);
+  } catch (err) {
+    console.log(`Error deleting old messages: ${err}`);
+  }
+};
+
+// Chamar a função periodicamente
+setInterval(deleteOldMessages, 24 * 60 * 60 * 1000); // Executar uma vez por dia
 
 exports.WhatsAppInstance = WhatsAppInstance;
 let file = require.resolve(__filename, "baileys_store_multi.json");

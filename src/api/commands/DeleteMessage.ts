@@ -4,6 +4,9 @@ import { GroupMetadata } from '@whiskeysockets/baileys';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
 import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
 import { getWhatsAppId } from '../../utils/getWhatsappId';
+import Group from '../models/group.model';
+import Message from '../models/message.model';
+import { group } from 'console';
 export default class DeleteMessage extends BaseCommand {
   private readonly logger = pino()
   private readonly allowedMethods: Method[] = ['reply']
@@ -40,6 +43,43 @@ export default class DeleteMessage extends BaseCommand {
     if (!groupMetadata) return
     if (message.quoted) {
       message.quoted.delete()
+    }
+  }
+  async deleteQuotedMessage(props: validateCommandProps, messageUpdate: ExtendedWAMessageUpdate) {
+    try {
+      if (!messageUpdate.quoted) {
+        throw new Error('Quoted message not found')
+      }
+
+      const group = await Group.findOne({ groupId: messageUpdate.chat }).populate('messages').exec()
+      if (!group) {
+        throw new Error('Group not found')
+      }
+
+      const message = group.messages.find(m => m.id === messageUpdate.quoted.id)
+      if (!message) {
+        throw new Error('Message not found')
+      }
+
+      const currentMessage = await Message.findById(message._id).exec()
+      if (!currentMessage) {
+        throw new Error('Message not found')
+      }
+
+      await props.instance.sendMessage(messageUpdate.chat, {
+        delete: {
+          remoteJid: currentMessage.remoteJid,
+          fromMe: currentMessage.fromMe,
+          id: currentMessage.id,
+          participant: currentMessage.participant,
+        }
+      })
+
+      group.messages = group.messages.filter(m => m.id !== currentMessage.id)
+      await currentMessage.delete()
+      await group.save()
+    } catch (error) {
+      this.logger.error(error)
     }
   }
   constructor() {
