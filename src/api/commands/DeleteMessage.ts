@@ -6,7 +6,6 @@ import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
 import { getWhatsAppId } from '../../utils/getWhatsappId';
 import Group from '../models/group.model';
 import Message from '../models/message.model';
-import { group } from 'console';
 export default class DeleteMessage extends BaseCommand {
   private readonly logger = pino()
   private readonly allowedMethods: Method[] = ['reply']

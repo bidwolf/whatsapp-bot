@@ -56,7 +56,6 @@ export default class EnableCommand extends BaseCommand {
       return true
     } catch (e) {
       this.logger.error(e)
-    } finally {
       return false
     }
   }
