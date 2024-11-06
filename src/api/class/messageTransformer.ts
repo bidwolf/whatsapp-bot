@@ -243,10 +243,9 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
   const M = proto.WebMessageInfo;
   const decodeJid = (jid: string | null | undefined): string => {
     if (!jid) return 'unknown';
-    if (jid.endsWith('@s.whatsapp.net') && conn?.user?.id) {
-      if (conn.user.id === jid) return jid;
+    if (jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us') || jid.endsWith('@broadcast') || jid.endsWith('@call')) {
+      return jid;
     }
-    if (jid.endsWith('@g.us') || jid.endsWith('@broadcast') || jid.endsWith('@call')) return jid;
     return 'unknown';
   };
 
@@ -305,8 +304,14 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
         message: quoted,
         ...(messageUpdate.isGroup ? { participant: messageUpdate.quoted.sender } : {})
       });
-
-      messageUpdate.quoted.delete = () => conn.sendMessage(messageUpdate.quoted.chat, { delete: vM.key });
+      messageUpdate.quoted.delete = () => conn.sendMessage(messageUpdate.chat, {
+        delete: {
+          remoteJid: messageUpdate.chat,
+          fromMe: messageUpdate.quoted.fromMe,
+          id: messageUpdate.quoted.id,
+          participant: messageUpdate.quoted.sender
+        }
+      });
 
       messageUpdate.quoted.copyNForward = (jid: string, forceForward: boolean = false, options: object = {}) => conn.copyNForward(jid, vM, forceForward, options);
 
@@ -326,7 +331,7 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
     if (!messageUpdate.copy) return;
     const message = messageUpdate.copy()
     if (!message) return;
-    return conn.sendMessage(message.chat, { delete: message.key });
+    return conn.sendMessage(message.chat, { delete: message.key, force: true });
   }
   const commandExtractor = new CommandExtractor(messageUpdate);
   const commandDetails = commandExtractor.retrieveCommandDetails();
