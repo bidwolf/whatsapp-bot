@@ -55,7 +55,6 @@ export type MSG = proto.IMessage & {
   url?: string;
 
 }
-
 export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   id?: string | null;
   isBaileys?: boolean;
@@ -66,7 +65,7 @@ export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   participant?: string;
   mtype?: string;
   msg?: MSG;
-  message?: any;
+  message?: any
   body?: string;
   quoted?: any;
   mentionedJid?: string[];
@@ -77,8 +76,9 @@ export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   copyNForward?: (jid?: string, forceForward?: boolean, options?: object) => Promise<any>;
   getQuotedObj?: () => Promise<ExtendedWAMessageUpdate | false>;
   getQuotedMessage?: () => Promise<ExtendedWAMessageUpdate | false>;
+  // getInviteCodeGroup?: (groupId: string) => Promise<string | null>;
   command: BotCommand | undefined;
-  method?: Method;
+  method?: Method
   isOffensive?: boolean;
   delete?: () => Promise<any>;
 };
@@ -243,10 +243,9 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
   const M = proto.WebMessageInfo;
   const decodeJid = (jid: string | null | undefined): string => {
     if (!jid) return 'unknown';
-    if (jid.endsWith('@s.whatsapp.net') && conn?.user?.id) {
-      if (conn.user.id === jid) return jid;
+    if (jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us') || jid.endsWith('@broadcast') || jid.endsWith('@call')) {
+      return jid;
     }
-    if (jid.endsWith('@g.us') || jid.endsWith('@broadcast') || jid.endsWith('@call')) return jid;
     return 'unknown';
   };
 
@@ -292,9 +291,7 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
       messageUpdate.quoted.mentionedJid = messageUpdate.msg?.contextInfo ? messageUpdate.msg?.contextInfo?.mentionedJid : [];
       messageUpdate.getQuotedObj = messageUpdate.getQuotedMessage = async () => {
         if (!messageUpdate.quoted.id) return false;
-        const chatGroup = store.messages[messageUpdate.quoted.chat]
-        if (!chatGroup) return false;
-        let q = chatGroup?.get(messageUpdate.quoted.id) || store.loadMessage(messageUpdate.quoted.chat, messageUpdate.quoted.id) as unknown as ExtendedWAMessageUpdate;
+        const q = await store.loadMessage(messageUpdate.chat, messageUpdate.quoted.id) as ExtendedWAMessageUpdate;
         if (!q) return false;
         return transformMessageUpdate(conn, q, store);
       };
@@ -307,8 +304,14 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
         message: quoted,
         ...(messageUpdate.isGroup ? { participant: messageUpdate.quoted.sender } : {})
       });
-
-      messageUpdate.quoted.delete = () => conn.sendMessage(messageUpdate.quoted.chat, { delete: vM.key });
+      messageUpdate.quoted.delete = () => conn.sendMessage(messageUpdate.chat, {
+        delete: {
+          remoteJid: messageUpdate.chat,
+          fromMe: messageUpdate.quoted.fromMe,
+          id: messageUpdate.quoted.id,
+          participant: messageUpdate.quoted.sender
+        }
+      });
 
       messageUpdate.quoted.copyNForward = (jid: string, forceForward: boolean = false, options: object = {}) => conn.copyNForward(jid, vM, forceForward, options);
 
@@ -328,7 +331,7 @@ export const transformMessageUpdate = (conn: ExtendedWaSocket, messageUpdate: Ex
     if (!messageUpdate.copy) return;
     const message = messageUpdate.copy()
     if (!message) return;
-    return conn.sendMessage(message.chat, { delete: message.key });
+    return conn.sendMessage(message.chat, { delete: message.key, force: true });
   }
   const commandExtractor = new CommandExtractor(messageUpdate);
   const commandDetails = commandExtractor.retrieveCommandDetails();

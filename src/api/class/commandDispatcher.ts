@@ -53,6 +53,14 @@ class CommandDispatcher {
         if (!command) return
         const cmd = this.commands.get(command.command_name)
         if (!cmd) return
+        if (!this.group) {
+            this.logger.error('Group not provided')
+            return
+        }
+        if (this.group.blockedCommands.includes(command.command_name) && !['on', 'off'].includes(command.command_name)) {
+            this.logger.info(`Command ${command.command_name} is blocked`)
+            return
+        }
         try {
             await cmd.execute(this.m, this.instance, this.store)
         } catch (e) {

@@ -38,11 +38,8 @@ export default class DeleteMessage extends BaseCommand {
     if (!command.command_executor) throw new Error('Command executor not found')
     const groupMetadata = await this.validateCommand({ method: message.method, command, instance, store })
     if (!groupMetadata) return
-    if (message.getQuotedMessage) {
-      const quotedMessage = await message.getQuotedMessage()
-      if (quotedMessage && quotedMessage.delete) {
-        quotedMessage.delete()
-      }
+    if (message.quoted) {
+      message.quoted.delete()
     }
   }
   constructor() {

@@ -1,5 +1,5 @@
 /* eslint-disable no-unsafe-optional-chaining */
-require("@whiskeysockets/baileys")
+require("@whiskeysockets/baileys");
 const QRCode = require("qrcode");
 const pino = require("pino");
 const {
@@ -8,6 +8,7 @@ const {
   proto,
   isJidBroadcast,
   DisconnectReason,
+  isJidGroup,
   // isJidNewsletter,
 } = require("@whiskeysockets/baileys");
 const { transformMessageUpdate } = require("./messageTransformer");
@@ -47,7 +48,7 @@ class WhatsAppInstance {
     defaultQueryTimeoutMs: undefined,
     // comment the line below out
     shouldIgnoreJid: (jid) =>
-      !jid || isJidBroadcast(jid) /*|| isJidNewsletter(jid)*/,
+      !jid || !isJidGroup(jid) /*|| isJidNewsletter(jid)*/,
     // implement to handle retries
     printQRInTerminal: false,
     msgRetryCounterCache,
@@ -182,7 +183,7 @@ class WhatsAppInstance {
    */
   async registerGroup(groupId) {
     try {
-      const group = new Group({ key: this.key, groupId: groupId});
+      const group = new Group({ key: this.key, groupId: groupId });
       await group.save();
       this.instance.availableGroups.push(group);
       logger.info("Group registered");
@@ -517,7 +518,7 @@ class WhatsAppInstance {
           if (parsedMessage.isOffensive && !groupAvailable.allowOffenses) {
             logger.info("Offensive message blocked");
             try {
-              parsedMessage.delete()
+              parsedMessage.delete();
             } catch (e) {
               this.logger.error(e);
             }
