@@ -515,7 +515,7 @@ class WhatsAppInstance {
           logger.info(
             `Group ${parsedMessage.key.remoteJid} available and offensive messages are ${groupAvailable.allowOffenses ? "allowed" : "blocked"}`,
           );
-          if (parsedMessage.isOffensive && !groupAvailable.allowOffenses) {
+          if ((parsedMessage.isOffensive && !groupAvailable.allowOffenses)|| groupAvailable.blackListedUsers.includes(parsedMessage.sender)) {
             logger.info("Offensive message blocked");
             try {
               parsedMessage.delete();

@@ -16,6 +16,7 @@ import Offenses from "../commands/Offenses";
 import DeleteMessage from "../commands/DeleteMessage";
 import BlockCommand from "../commands/BlockCommand";
 import EnableCommand from "../commands/EnableCommand";
+import MuteCommand from "../commands/Mute";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -40,6 +41,8 @@ class CommandDispatcher {
         const deleteMessage = new DeleteMessage()
         const blockedCommands = new BlockCommand()
         const enableCommand = new EnableCommand()
+        const muteCommand = new MuteCommand()
+        this.commands.set(muteCommand.command_name, muteCommand)
         this.commands.set(blockedCommands.command_name, blockedCommands)
         this.commands.set(enableCommand.command_name, enableCommand)
         this.commands.set(ban.command_name, ban)
