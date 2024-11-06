@@ -17,6 +17,7 @@ import DeleteMessage from "../commands/DeleteMessage";
 import BlockCommand from "../commands/BlockCommand";
 import EnableCommand from "../commands/EnableCommand";
 import MuteCommand from "../commands/Mute";
+import UnmuteCommand from "../commands/Desmute";
 const fs = require('fs');
 const pino = require('pino')()
 /**
@@ -42,9 +43,7 @@ class CommandDispatcher {
         const blockedCommands = new BlockCommand()
         const enableCommand = new EnableCommand()
         const muteCommand = new MuteCommand()
-        this.commands.set(muteCommand.command_name, muteCommand)
-        this.commands.set(blockedCommands.command_name, blockedCommands)
-        this.commands.set(enableCommand.command_name, enableCommand)
+        const unMuteCommand = new UnmuteCommand()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -56,6 +55,10 @@ class CommandDispatcher {
         this.commands.set(toggleChat.command_name, toggleChat)
         this.commands.set(offenses.command_name, offenses)
         this.commands.set(deleteMessage.command_name, deleteMessage)
+        this.commands.set(enableCommand.command_name, enableCommand)
+        this.commands.set(blockedCommands.command_name, blockedCommands)
+        this.commands.set(muteCommand.command_name, muteCommand)
+        this.commands.set(unMuteCommand.command_name, unMuteCommand)
     }
     async run() {
         const command = this.m.command
