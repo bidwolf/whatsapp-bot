@@ -62,28 +62,19 @@ export default class Ban extends BaseCommand {
     }
 
     const whatsAppId = getWhatsAppId(props.command.command_executor)
-    if (props.store) {
-      const cachedGroupMetadata = await props.store.fetchGroupMetadata(props.command.groupId, props.instance)
-      if (cachedGroupMetadata) {
-        const isAdmin = cachedGroupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-        if (isAdmin) {
-          return this.allowedMethods.includes(props.method) ? cachedGroupMetadata : null
-        }
+    // If the store is not available, use the socket to fetch the group metadata
+    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
+    if (!groupMetadata) return null
+    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
+    if (isAdmin) {
+      if (!this.allowedMethods.includes(props.method)) {
+        this.logger.info(
+          `Method ${props.method} not allowed`
+        )
       }
-    } else {
-      // If the store is not available, use the socket to fetch the group metadata
-      const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-      if (!groupMetadata) return null
-      const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-      if (isAdmin) {
-        if (!this.allowedMethods.includes(props.method)) {
-          this.logger.info(
-            `Method ${props.method} not allowed`
-          )
-        }
-        return this.allowedMethods.includes(props.method) ? groupMetadata : null
-      }
+      return this.allowedMethods.includes(props.method) ? groupMetadata : null
     }
+
     return null
   }
   private readonly allowedMethods: Method[] = ["mention", "reply"]
