@@ -38,7 +38,7 @@ export class CommandExtractor implements ICommandExtractor {
   };
 
   private isRaw = () => {
-    const is_command = this.payload.message ? this.payload.message.conversation.startsWith(COMMAND_PREFIX) : null
+    const is_command = this.payload.message && this.payload.message.conversation ? this.payload.message.conversation.startsWith(COMMAND_PREFIX) : null
     return { command: is_command && this.payload.message ? this.payload.message.conversation : null };
   };
 
