@@ -43,12 +43,15 @@ const WEBHOOK_ALLOWED_EVENTS = process.env.WEBHOOK_ALLOWED_EVENTS?.split(',') ||
 const MARK_MESSAGES_READ = !!(
     process.env.MARK_MESSAGES_READ && process.env.MARK_MESSAGES_READ === 'true'
 )
-
-module.exports = {
+const config = {
     port: PORT,
     token: TOKEN,
     restoreSessionsOnStartup: RESTORE_SESSIONS_ON_START_UP,
-    appUrl: APP_URL,
+    appUrl: APP_URL ? `${APP_URL}:${PORT}` : false,
+    redis: {
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT
+    },
     log: {
         level: LOG_LEVEL,
     },
@@ -76,3 +79,5 @@ module.exports = {
     markMessagesRead: MARK_MESSAGES_READ,
     webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS
 }
+module.exports = config
+export default config
