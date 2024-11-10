@@ -9,19 +9,24 @@ services:
             - 27017:27017
         volumes:
             - db:/data/db
-    app:
-        container_name: api
+    redis:
+        container_name: redis
+        image: redis:latest
+        restart: unless-stopped
+        ports:
+            - 6379:6379
+    app1:
         build:
             context: .
             dockerfile: Dockerfile
             args:
                 - PORT=${PORT}
+            target: production
         depends_on:
             - mongodb
+            - redis
         restart: unless-stopped
         env_file: .env
-        ports:
-            - ${PORT}:${PORT}
         environment:
             - TOKEN=${TOKEN}
             - PORT=${PORT}
@@ -30,9 +35,78 @@ services:
             - WEBHOOK_ENABLED=${WEBHOOK_ENABLED}
             - WEBHOOK_URL=${WEBHOOK_URL}
             - WEBHOOK_BASE64=${WEBHOOK_BASE64}
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
         volumes:
             - ./:/home/node/app
             - /home/node/app/node_modules/
-
+        command: yarn dev
+        deploy:
+            mode: replicated
+            replicas: 1
+        ports:
+            - 3000:${PORT}
+    app2:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                - PORT=${PORT}
+            target: production
+        depends_on:
+            - mongodb
+            - redis
+        restart: unless-stopped
+        env_file: .env
+        environment:
+            - TOKEN=${TOKEN}
+            - PORT=${PORT}
+            - MONGODB_ENABLED=${MONGODB_ENABLED}
+            - MONGODB_URL=mongodb://mongodb:27017
+            - WEBHOOK_ENABLED=${WEBHOOK_ENABLED}
+            - WEBHOOK_URL=${WEBHOOK_URL}
+            - WEBHOOK_BASE64=${WEBHOOK_BASE64}
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+        volumes:
+            - ./:/home/node/app
+            - /home/node/app/node_modules/
+        command: yarn dev
+        deploy:
+            mode: replicated
+            replicas: 1
+        ports:
+            - 3001:${PORT}
+    app3:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                - PORT=${PORT}
+            target: production
+        depends_on:
+            - mongodb
+            - redis
+        restart: unless-stopped
+        env_file: .env
+        environment:
+            - TOKEN=${TOKEN}
+            - PORT=${PORT}
+            - MONGODB_ENABLED=${MONGODB_ENABLED}
+            - MONGODB_URL=mongodb://mongodb:27017
+            - WEBHOOK_ENABLED=${WEBHOOK_ENABLED}
+            - WEBHOOK_URL=${WEBHOOK_URL}
+            - WEBHOOK_BASE64=${WEBHOOK_BASE64}
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+        volumes:
+            - ./:/home/node/app
+            - /home/node/app/node_modules/
+        command: yarn dev
+        deploy:
+            mode: replicated
+            replicas: 1
+        ports:
+            - 3002:${PORT}
 volumes:
     db:
