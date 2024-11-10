@@ -88,7 +88,7 @@ const initializeCommandDispatcher = async (instance: ExtendedWaSocket, m: Extend
         console.error(e);
     }
 };
-module.exports = initializeCommandDispatcher;
+export default initializeCommandDispatcher
 let file = require.resolve(__filename)
 fs.watchFile(file, () => {
     fs.unwatchFile(file)

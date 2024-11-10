@@ -9,9 +9,9 @@ const {
   isJidBroadcast,
   DisconnectReason,
   isJidGroup,
+  isJidNewsletter,
   // isJidNewsletter,
 } = require("@whiskeysockets/baileys");
-const { transformMessageUpdate } = require("./messageTransformer");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const processButton = require("../helper/processbtn");
@@ -27,6 +27,7 @@ const { handleRemoval } = require("../../utils/listeners");
 const useStore = !process.argv.includes("--no-store");
 const NodeCache = require("node-cache");
 const Message = require("../models/message.model");
+const messageQueue = require("../../queues/messageQueue");
 
 const store = useStore ? makeInMemoryStore({ logger }) : undefined;
 
@@ -34,6 +35,8 @@ const store = useStore ? makeInMemoryStore({ logger }) : undefined;
 // keep this out of the socket itself, so as to prevent a message decryption/encryption loop across socket restarts
 const msgRetryCounterCache = new NodeCache();
 const jsonPath = path.join(__dirname, "baileys_store_multi.json");
+const RedisClient = require("../../config/redisClient");
+const redisClient = RedisClient.getInstance();
 store?.readFromFile(jsonPath);
 setInterval(() => {
   store?.writeToFile(jsonPath);
@@ -49,7 +52,9 @@ class WhatsAppInstance {
     defaultQueryTimeoutMs: undefined,
     // comment the line below out
     shouldIgnoreJid: (jid) =>
-      !jid || !isJidGroup(jid) /*|| isJidNewsletter(jid)*/,
+      !jid ||
+      /*!isJidGroup(jid) ||*/ isJidNewsletter(jid) ||
+      isJidBroadcast(jid),
     // implement to handle retries
     printQRInTerminal: false,
     msgRetryCounterCache,
@@ -91,6 +96,7 @@ class WhatsAppInstance {
     qrRetry: 0,
     customWebhook: "",
     availableGroups: [],
+    sock: {},
   };
 
   axiosInstance = axios.create({
@@ -125,7 +131,9 @@ class WhatsAppInstance {
   }
 
   async init() {
-    this.collection = mongoClient.db("whatsapp-api").collection(this.key);
+    this.collection = global.mongoClient
+      .db("whatsapp-api")
+      .collection(this.key);
     const { state, saveCreds } = await useMongoDBAuthState(this.collection);
     this.authState = { state: state, saveCreds: saveCreds };
     this.socketConfig.auth = this.authState.state;
@@ -138,7 +146,7 @@ class WhatsAppInstance {
   }
   async loadAvailableGroups() {
     try {
-      const groups = await Group.find({ key: this.key }).exec();
+      const groups = await Group.find().exec();
       this.instance.availableGroups = groups.map((group) => ({
         groupId: group.groupId,
         blockedCommands: group.blockedCommands || [],
@@ -200,7 +208,6 @@ class WhatsAppInstance {
   async unregisterGroup(groupId) {
     try {
       const existentGroup = await Group.findOne({
-        key: this.key,
         groupId: groupId,
       }).exec();
       if (!existentGroup) {
@@ -219,7 +226,7 @@ class WhatsAppInstance {
   getAllAvailableGroups() {
     return this.instance.availableGroups;
   }
-  
+
   isGroupAvailable(groupId) {
     return this.instance.availableGroups.find((g) => g.groupId === groupId);
   }
@@ -237,7 +244,6 @@ class WhatsAppInstance {
         return;
       }
       const group = await Group.findOne({
-        key: this.key,
         groupId: groupId,
       }).exec();
       if (!group) {
@@ -272,7 +278,6 @@ class WhatsAppInstance {
         return;
       }
       const group = await Group.findOne({
-        key: this.key,
         groupId: groupId,
       }).exec();
       if (!group) {
@@ -311,7 +316,6 @@ class WhatsAppInstance {
         return;
       }
       const group = await Group.findOne({
-        key: this.key,
         groupId: groupId,
       }).exec();
       if (!group) {
@@ -498,60 +502,36 @@ class WhatsAppInstance {
           latestReceivedMessage.key.id.length === 16
         )
           return;
-        const parsedMessage = transformMessageUpdate(
-          this.instance.sock,
-          latestReceivedMessage,
-          store,
-        );
-        if (parsedMessage.isGroup) {
-          await this.loadAvailableGroups();
-          const groupAvailable = this.isGroupAvailable(
-            parsedMessage.key.remoteJid,
+        if (latestReceivedMessage.messageStubParameters) {
+          const cannotDecrypt = Array.from(
+            latestReceivedMessage.messageStubParameters,
+          ).find((msg) =>
+            String(msg).includes("No session found to decrypt message"),
           );
-          if (!groupAvailable) {
-            logger.info("Group not available");
-            return;
-          }
-          logger.info(
-            `Group ${parsedMessage.key.remoteJid} available and offensive messages are ${groupAvailable.allowOffenses ? "allowed" : "blocked"}`,
-          );
-          if ((parsedMessage.isOffensive && !groupAvailable.allowOffenses)|| groupAvailable.blackListedUsers.includes(parsedMessage.sender)) {
-            logger.info("Offensive message blocked");
-            try {
-              parsedMessage.delete();
-            } catch (e) {
-              this.logger.error(e);
-            }
-            return;
-          }
-          // Salvar a mensagem no MongoDB
-          const newMessage = new Message({
-            remoteJid: parsedMessage.chat,
-            fromMe: parsedMessage.fromMe,
-            id: parsedMessage.id,
-            participant: parsedMessage.participant,
-            message: parsedMessage.text,
-            timestamp: new Date()
-          });
-          await newMessage.save();
-          // Relacionar a mensagem com o grupo
-
-          const group = await Group.findOne({ key: this.key, groupId: parsedMessage.key.remoteJid }).exec();
-          group.messages.push(newMessage._id);
-          await group.save();
-          if (
-            parsedMessage.command &&
-            parsedMessage.command.command_name &&
-            parsedMessage.command.command_executor
-          ) {
-            require("./commandDispatcher")(
-              this.instance.sock,
-              parsedMessage,
-              groupAvailable,
-              store,
-            );
-          }
+          if (cannotDecrypt) return;
         }
+        const messageId = latestReceivedMessage.key.id;
+        const isProcessed = await redisClient.get(`processed:${messageId}`);
+        if (isProcessed) {
+          logger.info(`Mensagem já processada: ${messageId}`);
+          return;
+        }
+        if (!messageQueue) {
+          logger.error(`messageQueue não foi inicializada`);
+          return;
+        }
+        messageQueue.add({
+          message: latestReceivedMessage,
+          key: this.key,
+          store: store,
+        });
+        // Marcar a mensagem como processada
+        await redisClient.set(
+          `processed:${messageId}`,
+          "true",
+          "EX",
+          60 * 60 * 24,
+        ); // Expira em 24 horas
       } catch (err) {
         console.log(err);
       }
@@ -631,54 +611,54 @@ class WhatsAppInstance {
     });
 
     sock?.ev.on("messages.update", async (messages) => {
-      // console.log('messages.update')
+      console.log("messages.update");
       //console.dir(messages);
     });
-    sock?.ws.on("CB:call", async (data) => {
-      if (data.content) {
-        if (data.content.find((e) => e.tag === "offer")) {
-          const content = data.content.find((e) => e.tag === "offer");
-          if (
-            ["all", "call", "CB:call", "call:offer"].some((e) =>
-              config.webhookAllowedEvents.includes(e),
-            )
-          )
-            await this.SendWebhook(
-              "call_offer",
-              {
-                id: content.attrs["call-id"],
-                timestamp: parseInt(data.attrs.t),
-                user: {
-                  id: data.attrs.from,
-                  platform: data.attrs.platform,
-                  platform_version: data.attrs.version,
-                },
-              },
-              this.key,
-            );
-        } else if (data.content.find((e) => e.tag === "terminate")) {
-          const content = data.content.find((e) => e.tag === "terminate");
+    // sock?.ws.on("CB:call", async (data) => {
+    //   if (data.content) {
+    //     if (data.content.find((e) => e.tag === "offer")) {
+    //       const content = data.content.find((e) => e.tag === "offer");
+    //       if (
+    //         ["all", "call", "CB:call", "call:offer"].some((e) =>
+    //           config.webhookAllowedEvents.includes(e),
+    //         )
+    //       )
+    //         await this.SendWebhook(
+    //           "call_offer",
+    //           {
+    //             id: content.attrs["call-id"],
+    //             timestamp: parseInt(data.attrs.t),
+    //             user: {
+    //               id: data.attrs.from,
+    //               platform: data.attrs.platform,
+    //               platform_version: data.attrs.version,
+    //             },
+    //           },
+    //           this.key,
+    //         );
+    //     } else if (data.content.find((e) => e.tag === "terminate")) {
+    //       const content = data.content.find((e) => e.tag === "terminate");
 
-          if (
-            ["all", "call", "call:terminate"].some((e) =>
-              config.webhookAllowedEvents.includes(e),
-            )
-          )
-            await this.SendWebhook(
-              "call_terminate",
-              {
-                id: content.attrs["call-id"],
-                user: {
-                  id: data.attrs.from,
-                },
-                timestamp: parseInt(data.attrs.t),
-                reason: data.content[0].attrs.reason,
-              },
-              this.key,
-            );
-        }
-      }
-    });
+    //       if (
+    //         ["all", "call", "call:terminate"].some((e) =>
+    //           config.webhookAllowedEvents.includes(e),
+    //         )
+    //       )
+    //         await this.SendWebhook(
+    //           "call_terminate",
+    //           {
+    //             id: content.attrs["call-id"],
+    //             user: {
+    //               id: data.attrs.from,
+    //             },
+    //             timestamp: parseInt(data.attrs.t),
+    //             reason: data.content[0].attrs.reason,
+    //           },
+    //           this.key,
+    //         );
+    //     }
+    //   }
+    // });
     sock.ws.on("CB:notification,addressing_mode:pn", async (node) => {
       const { from: groupId, content } = node.attrs;
       const user = this.instance?.online ? this.instance.sock?.user : {};

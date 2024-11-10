@@ -75,7 +75,7 @@ export default class DeleteMessage extends BaseCommand {
       })
 
       group.messages = group.messages.filter(m => m.id !== currentMessage.id)
-      await currentMessage.delete()
+      await currentMessage.deleteOne()
       await group.save()
     } catch (error) {
       this.logger.error(error)

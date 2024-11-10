@@ -1,58 +1,61 @@
-const dotenv = require('dotenv')
-const mongoose = require('mongoose')
-const logger = require('pino')()
-dotenv.config()
+const dotenv = require("dotenv");
+const mongoose = require("mongoose");
+const logger = require("pino")();
+dotenv.config();
 
-const app = require('./config/express')
-const config = require('./config/config')
+const app = require("./config/express");
+const config = require("./config/config");
 
-const { Session } = require('./api/class/session')
-const connectToCluster = require('./api/helper/connectMongoClient')
+const { Session } = require("./api/class/session");
+const connectToCluster = require("./api/helper/connectMongoClient");
+const messageQueue = require("./queues/messageQueue");
+const processMessageJob = require("./queues/ProcessMessageJob");
 
-let server
+let server;
 
 if (config.mongoose.enabled) {
-    mongoose.set('strictQuery', true);
-    mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-        logger.info('Connected to MongoDB')
-    })
+  mongoose.set("strictQuery", true);
+  mongoose.connect(config.mongoose.url).then(() => {
+    logger.info("Connected to MongoDB");
+  });
 }
 
 server = app.listen(config.port, async () => {
-    logger.info(`Listening on port ${config.port}`)
-    global.mongoClient = await connectToCluster(config.mongoose.url)
-    if (config.restoreSessionsOnStartup) {
-        logger.info(`Restoring Sessions`)
-        const session = new Session()
-        let restoreSessions = await session.restoreSessions()
-        logger.info(`${restoreSessions.length} Session(s) Restored`)
-    }
-})
+  logger.info(`Listening on port ${config.port}`);
+  global.mongoClient = await connectToCluster(config.mongoose.url);
+  if (config.restoreSessionsOnStartup) {
+    logger.info(`Restoring Sessions`);
+    const session = new Session();
+    let restoreSessions = await session.restoreSessions();
+    logger.info(`${restoreSessions.length} Session(s) Restored`);
+  }
+});
+messageQueue.process(processMessageJob);
 
 const exitHandler = () => {
-    if (server) {
-        server.close(() => {
-            logger.info('Server closed')
-            process.exit(1)
-        })
-    } else {
-        process.exit(1)
-    }
-}
+  if (server) {
+    server.close(() => {
+      logger.info("Server closed");
+      process.exit(1);
+    });
+  } else {
+    process.exit(1);
+  }
+};
 
 const unexpectedErrorHandler = (error) => {
-    logger.error(error)
-    exitHandler()
-}
+  logger.error(error);
+  exitHandler();
+};
 
-process.on('uncaughtException', unexpectedErrorHandler)
-process.on('unhandledRejection', unexpectedErrorHandler)
+process.on("uncaughtException", unexpectedErrorHandler);
+process.on("unhandledRejection", unexpectedErrorHandler);
 
-process.on('SIGTERM', () => {
-    logger.info('SIGTERM received')
-    if (server) {
-        server.close()
-    }
-})
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received");
+  if (server) {
+    server.close();
+  }
+});
 
-module.exports = server
+module.exports = server;
