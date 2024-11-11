@@ -9,6 +9,10 @@ exports.init = async (req, res) => {
   const webhook = !req.query.webhook ? false : req.query.webhook;
   const webhookUrl = !req.query.webhookUrl ? null : req.query.webhookUrl;
   const appUrl = config.appUrl || req.protocol + "://" + req.headers.host;
+  if (global.WhatsAppInstances[key]) {
+    await global.WhatsAppInstances[key].close();
+    global.WhatsAppInstances[key] = undefined;
+  }
   const instance = new WhatsAppInstance(key, webhook, webhookUrl);
   const data = await instance.init();
   global.WhatsAppInstances[data.key] = instance;

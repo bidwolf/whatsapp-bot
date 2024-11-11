@@ -30,6 +30,10 @@ const groupSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  onlyBrazil: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const Group = mongoose.model("Group", groupSchema);
