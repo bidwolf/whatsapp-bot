@@ -10,7 +10,6 @@ import Description from "../commands/Description";
 import Rename from "../commands/Rename";
 import Rules from "../commands/Rules";
 import ToggleChat from "../commands/ToggleChat";
-const Group = require("../models/group.model");
 import { IGroup } from "../models/group.model";
 import Offenses from "../commands/Offenses";
 import DeleteMessage from "../commands/DeleteMessage";
@@ -18,7 +17,8 @@ import BlockCommand from "../commands/BlockCommand";
 import EnableCommand from "../commands/EnableCommand";
 import MuteCommand from "../commands/Mute";
 import UnmuteCommand from "../commands/Desmute";
-const fs = require('fs');
+import Flood from "../commands/Flood";
+import fs from 'fs';
 const pino = require('pino')()
 /**
  * CommandDispatcher
@@ -44,6 +44,7 @@ class CommandDispatcher {
         const enableCommand = new EnableCommand()
         const muteCommand = new MuteCommand()
         const unMuteCommand = new UnmuteCommand()
+        const flood = new Flood()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -59,6 +60,7 @@ class CommandDispatcher {
         this.commands.set(blockedCommands.command_name, blockedCommands)
         this.commands.set(muteCommand.command_name, muteCommand)
         this.commands.set(unMuteCommand.command_name, unMuteCommand)
+        this.commands.set(flood.command_name, flood)
     }
     async run() {
         const command = this.m.command

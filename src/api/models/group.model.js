@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
  * @property {array} blockedCommands - The commands that are blocked in the group
  * @property {array} blackListedUsers - The users that are blacklisted in the group
  * @property {boolean} allowOffenses - The flag that indicates if the group allows offenses
+ * @property {boolean} spamDetection - The flag that indicates if the group has spam detection
  */
 const groupSchema = new mongoose.Schema({
   groupId: {
@@ -25,6 +26,10 @@ const groupSchema = new mongoose.Schema({
     default: false,
   },
   messages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }], // Relacionar mensagens
+  spamDetection: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const Group = mongoose.model("Group", groupSchema);
