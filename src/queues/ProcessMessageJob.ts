@@ -6,6 +6,8 @@ import Message from "../api/models/message.model";
 import Group from "../api/models/group.model";
 import commandDispatcher from "../api/class/commandDispatcher";
 import P from "pino";
+import spamCheck, { SpamCheckResult } from "../utils/spamCheck";
+import { getWhatsAppId } from "../utils/getWhatsappId";
 const logger = P();
 export interface ProcessMessageJobData {
   message: ExtendedWAMessageUpdate
@@ -33,6 +35,22 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
       if (!groupAvailable) {
         logger.info("Group not available");
         return;
+      }
+      if (groupAvailable.spamDetection) {
+        const spam = await spamCheck(message)
+        if (spam === SpamCheckResult.SPAM_WARNING) {
+          message?.reply?.('⚠️ Você está enviando mensagens muito rapidamente. Por favor, aguarde alguns segundos antes de enviar outra mensagem.')
+        } else if (spam === SpamCheckResult.SPAM_BLOCK) {
+          const result = await instance.instance.sock.groupParticipantsUpdate(
+            message.key.remoteJid,
+            [getWhatsAppId(message.participant)],
+            'remove'
+          )
+          if (result && result.length > 0 && result[0].status == '200') {
+            message?.reply?.("Usuário removido por enviar flood");
+          }
+          return;
+        }
       }
       logger.info(
         `Group ${parsedMessage.key.remoteJid} available and offensive messages are ${groupAvailable.allowOffenses ? "allowed" : "blocked"}`,
