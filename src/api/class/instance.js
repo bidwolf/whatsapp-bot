@@ -214,7 +214,7 @@ class WhatsAppInstance {
         logger.info("Group not found");
         return;
       }
-      await existentGroup.delete();
+      await existentGroup.deleteOne();
       this.instance.availableGroups = this.instance.availableGroups.filter(
         (g) => g.groupId !== groupId,
       );
