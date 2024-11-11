@@ -2,10 +2,11 @@ import type { GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetad
 import { BaseCommand, Method, validateCommandProps } from "../../utils/commands";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../class/messageTransformer";
 import { TBaileysInMemoryStore } from "../class/BaileysInMemoryStore";
-import { sanitizeNumber } from "../../utils/conversionHelpers";
+import { isBrazilianNumber, sanitizeNumber } from "../../utils/conversionHelpers";
 import { getWhatsAppId } from "../../utils/getWhatsappId";
 import pino from "pino";
 import { ERROR_MESSAGES, INVITE_TEMPLATE, SUCCESS_MESSAGES } from "../../utils/constants";
+import Group from "../models/group.model";
 /**
  * Add
  * @description Adds a participant to a group
@@ -17,10 +18,23 @@ export default class Add extends BaseCommand {
     if (!message.command) throw new Error('Command not found')
     const { args } = message.command
     const groupMetadata = await this.validateCommand({ method: message.method, command: message.command, instance, store })
+    const group = await Group.findOne({ groupId: message.command.groupId }).exec();
+    if (!group) {
+      this.logger.info("Group not found");
+      return;
+    }
+
     if (!groupMetadata || !args) return
     const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber);
+      if (!isBrazilianNumber(sanitizedNumber) && group.onlyBrazil) {
+        this.logger.info(
+          `Number ${sanitizedNumber} is not a Brazilian number`
+        )
+        message.reply(ERROR_MESSAGES.BRAZIL_ONLY);
+        return
+      }
       let newParticipantId = getWhatsAppId(sanitizedNumber);
       if (message.method === 'reply') {
         const vcard =
@@ -91,27 +105,17 @@ export default class Add extends BaseCommand {
     }
 
     const whatsAppId = getWhatsAppId(props.command.command_executor)
-    if (props.store) {
-      const cachedGroupMetadata = await props.store.fetchGroupMetadata(props.command.groupId, props.instance)
-      if (cachedGroupMetadata) {
-        const isAdmin = cachedGroupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-        if (isAdmin) {
-          return this.allowedMethods.includes(props.method) ? cachedGroupMetadata : null
-        }
+    // If the store is not available, use the socket to fetch the group metadata
+    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
+    if (!groupMetadata) return null
+    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
+    if (isAdmin) {
+      if (!this.allowedMethods.includes(props.method)) {
+        this.logger.info(
+          `Method ${props.method} not allowed`
+        )
       }
-    } else {
-      // If the store is not available, use the socket to fetch the group metadata
-      const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-      if (!groupMetadata) return null
-      const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-      if (isAdmin) {
-        if (!this.allowedMethods.includes(props.method)) {
-          this.logger.info(
-            `Method ${props.method} not allowed`
-          )
-        }
-        return this.allowedMethods.includes(props.method) ? groupMetadata : null
-      }
+      return this.allowedMethods.includes(props.method) ? groupMetadata : null
     }
     return null
   }

@@ -7,6 +7,7 @@ export const ERROR_MESSAGES = {
   ALREADY_EXISTS: "O número já está no grupo.",
   ADD_DIRECTLY: "Não foi possível adicionar esse número diretamente ao grupo. Um convite foi enviado mas ainda pode ser recusado.",
   SELF_ADM_CHANGE: "Você não pode alterar seu próprio status de administrador.",
+  BRAZIL_ONLY: "Somente números brasileiros são permitidos nesse grupo.",
 }
 export const SUCCESS_MESSAGES = {
   BAN: 'Número banido com sucesso',

@@ -36,6 +36,7 @@ const store = useStore ? makeInMemoryStore({ logger }) : undefined;
 const msgRetryCounterCache = new NodeCache();
 const jsonPath = path.join(__dirname, "baileys_store_multi.json");
 const RedisClient = require("../../config/redisClient");
+const { Boom } = require("@hapi/boom");
 const redisClient = RedisClient.getInstance();
 store?.readFromFile(jsonPath);
 setInterval(() => {
@@ -77,10 +78,6 @@ class WhatsAppInstance {
 
       // only if store is present
       return proto.Message.fromObject({});
-    },
-    patchMessageBeforeSending: async (message) => {
-      await this.instance?.sock.uploadPreKeysToServerIfRequired();
-      return message;
     },
   };
   key = "";
@@ -347,57 +344,91 @@ class WhatsAppInstance {
       const { connection, lastDisconnect, qr } = update;
 
       if (connection === "connecting") return;
-
       if (connection === "close") {
-        // reconnect if not logged out
-        if (
-          lastDisconnect?.error?.output?.statusCode !==
-          DisconnectReason.loggedOut
-        ) {
-          await this.init();
+        const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+        if (reason === DisconnectReason.badSession) {
+          console.log(
+            `Bad Session File, Please Delete auth_info_baileys and Scan Again`,
+          );
+          sock.logout();
+        } else if (reason === DisconnectReason.connectionClosed) {
+          console.log("Connection closed, reconnecting....");
+          this.init();
+        } else if (reason === DisconnectReason.connectionLost) {
+          console.log("Connection Lost from Server, reconnecting...");
+          this.init();
+        } else if (reason === DisconnectReason.connectionReplaced) {
+          console.log(
+            "Connection Replaced, Another New Session Opened, Please Close Current Session First",
+          );
+          sock.logout();
+        } else if (reason === DisconnectReason.loggedOut) {
+          console.log(
+            `Device Logged Out, Please Delete auth_info_baileys and Scan Again.`,
+          );
+          sock.logout();
+        } else if (reason === DisconnectReason.restartRequired) {
+          console.log("Restart Required, Restarting...");
+          this.init();
+        } else if (reason === DisconnectReason.timedOut) {
+          console.log("Connection TimedOut, Reconnecting...");
+          this.init();
         } else {
-          await this.collection.drop().then(() => {
-            logger.info("STATE: Dropped collection");
-          });
-          this.instance.online = false;
-        }
-
-        if (
-          ["all", "connection", "connection.update", "connection:close"].some(
-            (e) => config.webhookAllowedEvents.includes(e),
-          )
-        )
-          await this.SendWebhook(
-            "connection",
-            {
-              connection: connection,
-            },
-            this.key,
+          sock.end(
+            `Unknown DisconnectReason: ${reason}|${lastDisconnect.error}`,
           );
-      } else if (connection === "open") {
-        if (config.mongoose.enabled) {
-          let alreadyThere = await Chat.findOne({
-            key: this.key,
-          }).exec();
-          if (!alreadyThere) {
-            const saveChat = new Chat({ key: this.key });
-            await saveChat.save();
-          }
         }
-        this.instance.online = true;
-        if (
-          ["all", "connection", "connection.update", "connection:open"].some(
-            (e) => config.webhookAllowedEvents.includes(e),
-          )
-        )
-          await this.SendWebhook(
-            "connection",
-            {
-              connection: connection,
-            },
-            this.key,
-          );
       }
+      // if (connection === "close") {
+      //   // reconnect if not logged out
+      //   if (
+      //     lastDisconnect?.error?.output?.statusCode !==
+      //     DisconnectReason.loggedOut
+      //   ) {
+      //     await this.init();
+      //   } else {
+      //     await this.collection.drop().then(() => {
+      //       logger.info("STATE: Dropped collection");
+      //     });
+      //     this.instance.online = false;
+      //   }
+
+      //   if (
+      //     ["all", "connection", "connection.update", "connection:close"].some(
+      //       (e) => config.webhookAllowedEvents.includes(e),
+      //     )
+      //   )
+      //     await this.SendWebhook(
+      //       "connection",
+      //       {
+      //         connection: connection,
+      //       },
+      //       this.key,
+      //     );
+      // } else if (connection === "open") {
+      //   if (config.mongoose.enabled) {
+      //     let alreadyThere = await Chat.findOne({
+      //       key: this.key,
+      //     }).exec();
+      //     if (!alreadyThere) {
+      //       const saveChat = new Chat({ key: this.key });
+      //       await saveChat.save();
+      //     }
+      //   }
+      //   this.instance.online = true;
+      //   if (
+      //     ["all", "connection", "connection.update", "connection:open"].some(
+      //       (e) => config.webhookAllowedEvents.includes(e),
+      //     )
+      //   )
+      //     await this.SendWebhook(
+      //       "connection",
+      //       {
+      //         connection: connection,
+      //       },
+      //       this.key,
+      //     );
+      // }
 
       if (qr) {
         QRCode.toDataURL(qr).then((url) => {

@@ -20,7 +20,11 @@ export class MessageFilter {
     // Verifica se algum termo ofensivo está presente na mensagem normalizada
     return this.offensiveWords.some(offensiveWord => {
       const current = offensiveWord.toLowerCase();
-      const isOffensive = normalizedMessage.includes(current) || normalizedMessage === current;
+      const isOffensive = (normalizedMessage.includes(current) && (normalizedMessage.includes(` ${current}`) || normalizedMessage.includes(`${current} `))) || normalizedMessage === current
+      if (isOffensive) {
+        console.log(`Offensive word found: ${current}`);
+        console.log(`Normalized message: ${normalizedMessage}`);
+      }
       return isOffensive
     });
   }
