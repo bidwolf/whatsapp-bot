@@ -6,6 +6,8 @@ const mongoose = require("mongoose");
  * @property {array} blackListedUsers - The users that are blacklisted in the group
  * @property {boolean} allowOffenses - The flag that indicates if the group allows offenses
  * @property {boolean} spamDetection - The flag that indicates if the group has spam detection
+ * @property {boolean} onlyBrazil - The flag that indicates if the group is only for Brazil
+ * @property {string} welcomeMessage - The welcome message of the group
  */
 const groupSchema = new mongoose.Schema({
   groupId: {
@@ -33,6 +35,10 @@ const groupSchema = new mongoose.Schema({
   onlyBrazil: {
     type: Boolean,
     default: false,
+  },
+  welcomeMessage: {
+    type: String,
+    default: "",
   },
 });
 
