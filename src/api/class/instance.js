@@ -37,6 +37,11 @@ const msgRetryCounterCache = new NodeCache();
 const jsonPath = path.join(__dirname, "baileys_store_multi.json");
 const RedisClient = require("../../config/redisClient");
 const { Boom } = require("@hapi/boom");
+const {
+  sanitizeNumber,
+  isBrazilianNumber,
+} = require("../../utils/conversionHelpers");
+const { getWhatsAppId } = require("../../utils/getWhatsappId");
 const redisClient = RedisClient.getInstance();
 store?.readFromFile(jsonPath);
 setInterval(() => {
@@ -695,10 +700,59 @@ class WhatsAppInstance {
       const user = this.instance?.online ? this.instance.sock?.user : {};
       const events = Array.from(node.content);
 
-      events.forEach((event) => {
+      events.forEach(async (event) => {
         const { tag, content: eventContent } = event;
 
         if (tag === "add") {
+          try {
+            const group = await Group.findOne({ groupId: groupId }).exec();
+            if (!group) return;
+            const mentions = Array.from(eventContent).map((ev) => {
+              const { attrs } = ev;
+              return attrs.jid || "";
+            });
+            const messageMentions = mentions.map(
+              (mention) => `@${mention.split("@")[0]}`,
+            );
+            if (group.welcomeMessage) {
+              this.instance.sock.sendMessage(groupId, {
+                text: `${group.welcomeMessage} ${messageMentions.join(" ")}`,
+                mentions: mentions,
+              });
+              return;
+            }
+            eventContent.forEach(async (ev) => {
+              if ("participant" in ev) {
+                const { attrs } = ev.participant;
+                const number = sanitizeNumber(attrs.jid);
+                if (
+                  (group.onlyBrazil && !isBrazilianNumber(number)) ||
+                  group.blackListedUsers.includes(attrs.jid)
+                ) {
+                  sock.sendMessage(groupId, {
+                    text: `Este grupo é restrito a números brasileiros`,
+                  });
+                  const result = await sock.groupParticipantsUpdate(
+                    groupId,
+                    [getWhatsAppId(number)],
+                    "remove",
+                  );
+                  if (
+                    result &&
+                    result.length > 0 &&
+                    result[0].status == "200"
+                  ) {
+                    this.logger.info("Participant removed");
+                  } else {
+                    this.logger.info("Participant not removed");
+                  }
+                  return;
+                }
+              }
+            });
+          } catch (error) {
+            logger.error(`Error adding user to group ${groupId}`);
+          }
           logger.info(`A user has been added to group ${groupId}`);
         } else if (tag === "remove") {
           logger.info(`A user has been removed from the group ${groupId}`);

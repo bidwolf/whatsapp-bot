@@ -3,9 +3,9 @@ import { BaseCommand, Method, validateCommandProps } from '../../utils/commands'
 import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { COMMAND_PREFIX } from '../../utils/constants';
 import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class ToggleChat extends BaseCommand {
+import Group from '../models/group.model';
+export default class WelcomeMessage extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     const { command, method } = message
     if (!command) {
@@ -18,21 +18,27 @@ export default class ToggleChat extends BaseCommand {
     if (!groupMetadata) {
       return
     }
-    let toggleCommandArgs = command.args
-    if (command.args && typeof command.args === 'object') {
-      toggleCommandArgs = command.args[0]
+    if (command.args && typeof command.args === 'string') {
+      const welcomeMessage = command.args
+      this.updateWelcomeMessage(groupMetadata.id, welcomeMessage)
+      message.reply?.(`Mensagem de boas-vindas atualizada com sucesso`)
+    } else if (command.args && typeof command.args === 'object') {
+      const welcomeMessage = command.args.join(' ')
+      this.updateWelcomeMessage(groupMetadata.id, welcomeMessage)
+      message.reply?.(`Mensagem de boas-vindas atualizada com sucesso`)
     }
-    if (toggleCommandArgs === 'on') {
-      instance.groupSettingUpdate(groupMetadata.id, 'not_announcement')
-      return
-    }
-    if (toggleCommandArgs === 'off') {
-      instance.groupSettingUpdate(groupMetadata.id, 'announcement')
-      return
-    }
-    if (message.reply) {
-      this.logger.info('No args found or invalid args')
-      message.reply(`Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_permite que todos enviem mensagens no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_somente administradores podem enviar mensagens no grupo_)`)
+  }
+  private async updateWelcomeMessage(groupId: string, welcomeMessage: string) {
+    try {
+      const group = await Group.findOne({ groupId: groupId }).exec()
+      if (!group) {
+        this.logger.info("Group not found")
+        return
+      }
+      group.welcomeMessage = welcomeMessage
+      group.save()
+    } catch (error) {
+      this.logger.error(`Error updating welcome message: ${error}`)
     }
   }
   private readonly logger = pino()
@@ -58,6 +64,6 @@ export default class ToggleChat extends BaseCommand {
     return null
   }
   constructor() {
-    super('chat')
+    super('msg')
   }
 }

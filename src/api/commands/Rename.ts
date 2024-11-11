@@ -35,30 +35,15 @@ export default class Rename extends BaseCommand {
       throw new Error('Command executor not found')
     }
     const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-    if (props.store) {
-      const groupMetadata = await props.store.fetchGroupMetadata(props.command.groupId, props.instance)
-      if (groupMetadata) {
-        const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId)?.admin
-        if (isAdmin) {
-          const isAllowed = this.allowedMethods.includes(props.method)
-          this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${whatsAppId}`)
-          return isAllowed ? groupMetadata : null
-        }
-      }
-    } else {
-
-      const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-      if (!groupMetadata) {
-        throw new Error('Group metadata not found')
-      }
-      const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId)?.admin
-      if (!isAdmin) {
-        const isAllowed = this.allowedMethods.includes(props.method)
-        this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${whatsAppId}`)
-        return isAllowed ? groupMetadata : null
-      }
-      return null
+    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
+    if (!groupMetadata) {
+      throw new Error('Group metadata not found')
+    }
+    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId)?.admin
+    if (isAdmin) {
+      const isAllowed = this.allowedMethods.includes(props.method)
+      this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${whatsAppId}`)
+      return isAllowed ? groupMetadata : null
     }
     return null
   }
