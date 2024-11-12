@@ -36,6 +36,18 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
         logger.info("Group not available");
         return;
       }
+      if (!groupAvailable.enabled) {
+        logger.info('Group is disabled, you can only use the bot command')
+        if (parsedMessage && parsedMessage.command && parsedMessage.command.command_name) {
+          if (parsedMessage.command.command_name !== 'bot') return;
+        }
+      }
+      if (parsedMessage && parsedMessage.command && parsedMessage.command.command_name) {
+        if (groupAvailable.blockedCommands.includes(parsedMessage.command.command_name) && !['on', 'off'].includes(parsedMessage.command.command_name)) {
+          logger.info(`Command ${parsedMessage.command.command_name} is blocked`)
+          return
+        }
+      }
       const containsWhatsAppLink = parsedMessage?.text?.match(/https:\/\/chat\.whatsapp\.com\/[^\s]+/g) || false
       if (!groupAvailable.shareInviteEnabled && containsWhatsAppLink) {
         if (parsedMessage.key.fromMe) return;

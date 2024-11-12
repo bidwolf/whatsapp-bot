@@ -35,7 +35,7 @@ export default class EnableCommand extends BaseCommand {
   }
   async enableCommand(groupId: string, command: string): Promise<boolean> {
     try {
-      if (command === 'on' || command === 'off') {
+      if (command === 'on' || command === 'off' || command === 'bot') {
         return false
       }
       const existentGroup = await Group.findOne({
