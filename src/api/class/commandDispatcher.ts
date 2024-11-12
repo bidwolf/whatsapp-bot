@@ -24,6 +24,7 @@ import WelcomeMessage from "../commands/WelcomeMessage";
 import UpdateStatus from "../commands/UpdateStatus";
 import NotifyAllMembers from "../commands/NotifyAllMembers";
 import ToggleShareInvite from "../commands/ToggleShareInvite";
+import ToggleBotStatus from "../commands/ToggleBotStatus";
 const pino = require('pino')()
 /**
  * CommandDispatcher
@@ -55,6 +56,7 @@ class CommandDispatcher {
         const updateStatus = new UpdateStatus()
         const notifyAllMembers = new NotifyAllMembers()
         const toggleShareInvite = new ToggleShareInvite()
+        const toggleBotStatus = new ToggleBotStatus()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -76,6 +78,7 @@ class CommandDispatcher {
         this.commands.set(updateStatus.command_name, updateStatus)
         this.commands.set(notifyAllMembers.command_name, notifyAllMembers)
         this.commands.set(toggleShareInvite.command_name, toggleShareInvite)
+        this.commands.set(toggleBotStatus.command_name, toggleBotStatus)
     }
     async run() {
         const command = this.m.command
@@ -84,10 +87,6 @@ class CommandDispatcher {
         if (!cmd) return
         if (!this.group) {
             this.logger.error('Group not provided')
-            return
-        }
-        if (this.group.blockedCommands.includes(command.command_name) && !['on', 'off'].includes(command.command_name)) {
-            this.logger.info(`Command ${command.command_name} is blocked`)
             return
         }
         try {
