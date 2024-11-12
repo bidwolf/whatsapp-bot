@@ -36,6 +36,19 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
         logger.info("Group not available");
         return;
       }
+      const containsWhatsAppLink = parsedMessage?.text?.match(/https:\/\/chat\.whatsapp\.com\/[^\s]+/g) || false
+      if (!groupAvailable.shareInviteEnabled && containsWhatsAppLink) {
+        if (parsedMessage.key.fromMe) return;
+        const linkGroup = await instance.instance.sock.groupInviteCode(parsedMessage.chat)
+        if (linkGroup && !(linkGroup.includes(parsedMessage.text) || parsedMessage?.text?.includes(linkGroup))) {
+          await instance.instance.sock.groupParticipantsUpdate(
+            parsedMessage.key.remoteJid,
+            [getWhatsAppId(parsedMessage.participant)],
+            'remove'
+          )
+          await message?.delete?.()
+        }
+      }
       if (groupAvailable.spamDetection) {
         const spam = await spamCheck(message)
         if (spam === SpamCheckResult.SPAM_WARNING) {
