@@ -21,6 +21,7 @@ import Flood from "../commands/Flood";
 import fs from 'fs';
 import ToggleBrazilianOnly from "../commands/ToggleBrazilianOnly";
 import WelcomeMessage from "../commands/WelcomeMessage";
+import UpdateStatus from "../commands/UpdateStatus";
 const pino = require('pino')()
 /**
  * CommandDispatcher
@@ -49,6 +50,7 @@ class CommandDispatcher {
         const flood = new Flood()
         const toggleBrazilianOnly = new ToggleBrazilianOnly()
         const welcomeMessage = new WelcomeMessage()
+        const updateStatus = new UpdateStatus()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -67,6 +69,7 @@ class CommandDispatcher {
         this.commands.set(flood.command_name, flood)
         this.commands.set(toggleBrazilianOnly.command_name, toggleBrazilianOnly)
         this.commands.set(welcomeMessage.command_name, welcomeMessage)
+        this.commands.set(updateStatus.command_name, updateStatus)
     }
     async run() {
         const command = this.m.command
