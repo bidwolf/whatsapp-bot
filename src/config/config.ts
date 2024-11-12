@@ -45,6 +45,7 @@ const MARK_MESSAGES_READ = !!(
 )
 const config = {
     port: PORT,
+    ANTI_DELETE: process.env.ANTI_DELETE || true,
     token: TOKEN,
     restoreSessionsOnStartup: RESTORE_SESSIONS_ON_START_UP,
     appUrl: APP_URL ? `${APP_URL}:${PORT}` : false,
