@@ -23,6 +23,7 @@ import ToggleBrazilianOnly from "../commands/ToggleBrazilianOnly";
 import WelcomeMessage from "../commands/WelcomeMessage";
 import UpdateStatus from "../commands/UpdateStatus";
 import NotifyAllMembers from "../commands/NotifyAllMembers";
+import ToggleShareInvite from "../commands/ToggleShareInvite";
 const pino = require('pino')()
 /**
  * CommandDispatcher
@@ -53,6 +54,7 @@ class CommandDispatcher {
         const welcomeMessage = new WelcomeMessage()
         const updateStatus = new UpdateStatus()
         const notifyAllMembers = new NotifyAllMembers()
+        const toggleShareInvite = new ToggleShareInvite()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -73,6 +75,7 @@ class CommandDispatcher {
         this.commands.set(welcomeMessage.command_name, welcomeMessage)
         this.commands.set(updateStatus.command_name, updateStatus)
         this.commands.set(notifyAllMembers.command_name, notifyAllMembers)
+        this.commands.set(toggleShareInvite.command_name, toggleShareInvite)
     }
     async run() {
         const command = this.m.command

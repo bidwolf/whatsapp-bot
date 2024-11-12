@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
  * @property {boolean} spamDetection - The flag that indicates if the group has spam detection
  * @property {boolean} onlyBrazil - The flag that indicates if the group is only for Brazil
  * @property {string} welcomeMessage - The welcome message of the group
+ * @property {boolean} shareInviteEnabled - The flag that indicates if the group has anti share group
  */
 const groupSchema = new mongoose.Schema({
   groupId: {
@@ -39,6 +40,10 @@ const groupSchema = new mongoose.Schema({
   welcomeMessage: {
     type: String,
     default: "",
+  },
+  shareInviteEnabled: {
+    type: Boolean,
+    default: true,
   },
 });
 
