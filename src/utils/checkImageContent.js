@@ -5,8 +5,17 @@ const { promisify } = require("util");
 const fs = require("fs");
 const path = require("path");
 const nsfw = require("nsfwjs");
+const { default: config } = require("../config/config");
 const writeFileAsync = promisify(fs.writeFile);
 const unlinkAsync = promisify(fs.unlink);
+const modelPath = config.MODEL_PATH;
+const loadModel = async () => {
+  const model = await nsfw.load(modelPath);
+  return model;
+};
+if (!global.model) {
+  global.model = loadModel();
+}
 
 async function extractFrame(videoBuffer) {
   const tempVideoPath = path.join(__dirname, "temp_video.mp4");
@@ -82,7 +91,7 @@ const checkImageContent = async (buffer) => {
   return verifyImage(image);
 };
 const verifyImage = async (image) => {
-  const model = await nsfw.load();
+  const model = global.model;
   const predictions = await model.classify(image);
   image.dispose();
 
