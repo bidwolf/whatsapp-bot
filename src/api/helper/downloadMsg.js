@@ -8,7 +8,11 @@ const { downloadContentFromMessage } = require("@whiskeysockets/baileys");
 module.exports = async function downloadMessage(msg, msgType) {
   let buffer = Buffer.from([]);
   try {
-    const { directPath, mediaKey, url } = msg.msg;
+    const { directPath, mediaKey } = msg.msg;
+    const url =
+      msgType === "sticker"
+        ? msg.msg?.stickerMessage?.url || undefined
+        : msg.msg.url;
     const stream = await downloadContentFromMessage(
       { directPath, mediaKey, url },
       msgType,
