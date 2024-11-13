@@ -1,5 +1,5 @@
 import Redis, { Redis as RedisType } from 'ioredis';
-import config from './config';
+const config = require('./config');
 import P from 'pino';
 
 const logger = P();

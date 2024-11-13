@@ -3,14 +3,16 @@ const sharp = require("sharp");
 const tf = require("@tensorflow/tfjs-node");
 const { promisify } = require("util");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const nsfw = require("nsfwjs");
-const { default: config } = require("../config/config");
 const writeFileAsync = promisify(fs.writeFile);
 const unlinkAsync = promisify(fs.unlink);
-const modelPath = config.MODEL_PATH;
+if (process.env.NODE_ENV === "production") {
+  tf.enableProdMode();
+}
 const loadModel = async () => {
-  const model = await nsfw.load(modelPath);
+  const model = await nsfw.load("MobileNetV2");
   return model;
 };
 if (!global.model) {
@@ -18,8 +20,9 @@ if (!global.model) {
 }
 
 async function extractFrame(videoBuffer) {
-  const tempVideoPath = path.join(__dirname, "temp_video.mp4");
-  const tempFramePath = path.join(__dirname, "temp_frame.png");
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "whatsapp-bot-"));
+  const tempVideoPath = path.join(tempDir, "temp_video.mp4");
+  const tempFramePath = path.join(tempDir, "temp_frame.png");
 
   await writeFileAsync(tempVideoPath, videoBuffer);
 

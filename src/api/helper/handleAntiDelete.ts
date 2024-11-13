@@ -2,8 +2,8 @@ const messageStore = new Map();
 import { downloadMediaMessage, WAMessage, WAMessageUpdate, WASocket } from '@whiskeysockets/baileys';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import config from '../../config/config';
 import { ExtendedWAMessageUpdate } from '../class/messageTransformer';
+const config = require('../../config/config');
 const { ANTI_DELETE } = config;
 type Message = {
 	localMediaPath?: string

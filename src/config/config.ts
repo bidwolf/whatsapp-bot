@@ -81,4 +81,3 @@ const config = {
     webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS
 }
 module.exports = config
-export default config
