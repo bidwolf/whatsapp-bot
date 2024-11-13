@@ -10,6 +10,7 @@ const mongoose = require("mongoose");
  * @property {string} welcomeMessage - The welcome message of the group
  * @property {boolean} shareInviteEnabled - The flag that indicates if the group has anti share group
  * @property {boolean} enabled - The flag that indicates if the group is enabled
+ * @property {boolean} allowNSFW - The flag that enables the group to keep NSFW content
  */
 const groupSchema = new mongoose.Schema({
   groupId: {
@@ -49,6 +50,10 @@ const groupSchema = new mongoose.Schema({
   enabled: {
     type: Boolean,
     default: true,
+  },
+  allowNSFW: {
+    type: Boolean,
+    default: false,
   },
 });
 

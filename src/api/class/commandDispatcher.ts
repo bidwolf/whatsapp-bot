@@ -25,6 +25,7 @@ import UpdateStatus from "../commands/UpdateStatus";
 import NotifyAllMembers from "../commands/NotifyAllMembers";
 import ToggleShareInvite from "../commands/ToggleShareInvite";
 import ToggleBotStatus from "../commands/ToggleBotStatus";
+import ToggleNSFW from "../commands/ToggleNFSW";
 const pino = require('pino')()
 /**
  * CommandDispatcher
@@ -57,6 +58,7 @@ class CommandDispatcher {
         const notifyAllMembers = new NotifyAllMembers()
         const toggleShareInvite = new ToggleShareInvite()
         const toggleBotStatus = new ToggleBotStatus()
+        const toggleNSFW = new ToggleNSFW()
         this.commands.set(ban.command_name, ban)
         this.commands.set(add.command_name, add)
         this.commands.set(adm.command_name, adm)
@@ -79,6 +81,7 @@ class CommandDispatcher {
         this.commands.set(notifyAllMembers.command_name, notifyAllMembers)
         this.commands.set(toggleShareInvite.command_name, toggleShareInvite)
         this.commands.set(toggleBotStatus.command_name, toggleBotStatus)
+        this.commands.set(toggleNSFW.command_name, toggleNSFW)
     }
     async run() {
         const command = this.m.command

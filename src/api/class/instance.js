@@ -42,6 +42,7 @@ const {
   isBrazilianNumber,
 } = require("../../utils/conversionHelpers");
 const { getWhatsAppId } = require("../../utils/getWhatsappId");
+const { handleAntiDelete } = require("../helper/handleAntiDelete");
 const redisClient = RedisClient.getInstance();
 store?.readFromFile(jsonPath);
 setInterval(() => {
@@ -648,6 +649,7 @@ class WhatsAppInstance {
 
     sock?.ev.on("messages.update", async (messages) => {
       console.log("messages.update");
+      await handleAntiDelete(sock, messages);
       //console.dir(messages);
     });
     // sock?.ws.on("CB:call", async (data) => {

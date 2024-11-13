@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import { WhatsAppInstance } from "./api/class/instance";
+import { NSFWJS } from "nsfwjs";
 
 declare global {
 
@@ -9,6 +10,7 @@ declare global {
 
   var WhatsAppInstances: WhatsAppInstances;
   var mongoClient: MongoClient;
+  var model: NSFWJS
 }
 
 export { };

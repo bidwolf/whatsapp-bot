@@ -8,6 +8,9 @@ import commandDispatcher from "../api/class/commandDispatcher";
 import P from "pino";
 import spamCheck, { SpamCheckResult } from "../utils/spamCheck";
 import { getWhatsAppId } from "../utils/getWhatsappId";
+import { checkImageContent, checkVideoContent } from "../utils/checkImageContent";
+import downloadMsg from "../api/helper/downloadMsg";
+import { MediaType } from "@whiskeysockets/baileys";
 const logger = P();
 export interface ProcessMessageJobData {
   message: ExtendedWAMessageUpdate
@@ -91,7 +94,6 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
         }
         return;
       }
-      // Salvar a mensagem no MongoDB
       const newMessage = new Message({
         remoteJid: parsedMessage.chat,
         fromMe: parsedMessage.fromMe,
@@ -103,6 +105,8 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
       await newMessage.save();
       // Relacionar a mensagem com o grupo
 
+      // Salvar a mensagem no MongoDB
+
       const group = await Group.findOne({ groupId: parsedMessage.key.remoteJid }).exec();
       if (!group) {
         logger.info("Group not found");
@@ -110,6 +114,31 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
       }
       group.messages.push(newMessage._id);
       await group.save();
+      if (!group?.allowNSFW && parsedMessage.mtype && parsedMessage.msg?.url) {
+        const checkableMediaTypes: MediaType[] = ["image", "gif", "video", "thumbnail-video", "thumbnail-image"]
+        const shouldCheck = checkableMediaTypes.includes(getMediaType(parsedMessage.mtype))
+        if (shouldCheck) {
+          const buffer = await downloadMsg(parsedMessage, getMediaType(parsedMessage.mtype))
+          if (!buffer) {
+            logger.info("Media not found");
+            return;
+          }
+          let isInappropriate = false
+          if (getMediaType(parsedMessage?.mtype) === 'video') {
+            isInappropriate = await checkVideoContent(buffer);
+          } else {
+            isInappropriate = await checkImageContent(buffer);
+          }
+          if (isInappropriate) {
+            logger.info("Inappropriate content detected and deleted");
+            if (parsedMessage.delete) {
+              parsedMessage.delete();
+            }
+            return;
+          }
+        }
+      }
+
       if (
         parsedMessage.command &&
         parsedMessage.command.command_name &&
@@ -127,7 +156,20 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
     console.error(e)
   }
 }
-
+const getMediaType = (mtype: string): MediaType => {
+  switch (mtype) {
+    case 'imageMessage':
+      return "image"
+    case 'stickerMessage':
+      return 'sticker'
+    case 'videoMessage':
+      return 'video'
+    case 'audioMessage':
+      return 'audio'
+    default:
+      return 'document'
+  }
+}
 export default processMessageJob;
 
 module.exports = processMessageJob;
