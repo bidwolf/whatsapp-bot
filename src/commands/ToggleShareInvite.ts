@@ -1,14 +1,14 @@
 
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import Group from '../models/group.model';
-import { COMMAND_PREFIX } from '../../utils/constants';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class ToggleNSFW extends BaseCommand {
-  private async toggleBotStatus(groupId: string, isNSFWEnabled: boolean) { //NSFW = Not Safe For Work
+import Group from '../api/models/group.model';
+import { COMMAND_PREFIX } from '../utils/constants';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class ToggleShareInvite extends BaseCommand {
+  private async toggleShareInvite(groupId: string, isShareInviteEnabled: boolean) {
     try {
       const existentGroup = await Group.findOne({
         groupId: groupId,
@@ -17,7 +17,7 @@ export default class ToggleNSFW extends BaseCommand {
         this.logger.info("Group not found");
         return;
       }
-      existentGroup.allowNSFW = isNSFWEnabled
+      existentGroup.shareInviteEnabled = isShareInviteEnabled
       existentGroup.save();
       return true
     } catch (e) {
@@ -38,15 +38,15 @@ export default class ToggleNSFW extends BaseCommand {
       return
     }
     if (command.groupId) {
-      let toggleNSFWArgs = command.args
+      let inviteArg = command.args
       if (command.args && typeof command.args === 'object') {
-        toggleNSFWArgs = command.args[0]
+        inviteArg = command.args[0]
       }
-      if (toggleNSFWArgs === 'on' || toggleNSFWArgs === 'off') {
-        const isQueryNSFWSuccessful = await this.toggleBotStatus(command.groupId, toggleNSFWArgs === 'off') // if antiPorn is off, allowNSFW is true
-        if (isQueryNSFWSuccessful && message.reply) {
+      if (inviteArg === 'on' || inviteArg === 'off') {
+        const isInviteToggleStatus = await this.toggleShareInvite(command.groupId, inviteArg === 'off') // if antic is "on", then, isShareInviteEnabled is false
+        if (isInviteToggleStatus && message.reply) {
           instance.sendMessage(command.groupId, {
-            text: `Conteúdo impróprio ${toggleNSFWArgs === 'on' ? 'des' : 'h'}abilitado.`,
+            text: `Convites externos ${inviteArg === 'on' ? 'des' : 'h'}abilitados.`,
           })
         }
         return
@@ -54,7 +54,7 @@ export default class ToggleNSFW extends BaseCommand {
       if (message.reply) {
         this.logger.info('No args found or invalid args')
         instance.sendMessage(command.groupId, {
-          text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_Proíbe conteúdo impróprio no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_Permite o envio de conteúdo impróprio no grupo_)`,
+          text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_desabilita os convites externos_)\n*${COMMAND_PREFIX + this.command_name} off* (_habilita os convites externos_)`,
         })
       }
     }
@@ -85,6 +85,6 @@ export default class ToggleNSFW extends BaseCommand {
     return null
   }
   constructor() {
-    super('antiporn')
+    super('antic')
   }
 }

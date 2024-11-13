@@ -1,12 +1,12 @@
 import type { GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
-import { BaseCommand, Method, validateCommandProps } from "../../utils/commands";
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../class/messageTransformer";
-import { TBaileysInMemoryStore } from "../class/BaileysInMemoryStore";
-import { isBrazilianNumber, sanitizeNumber } from "../../utils/conversionHelpers";
-import { getWhatsAppId } from "../../utils/getWhatsappId";
+import { BaseCommand, Method, validateCommandProps } from "../utils/commands";
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
+import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
+import { isBrazilianNumber, sanitizeNumber } from "../utils/conversionHelpers";
+import { getWhatsAppId } from "../utils/getWhatsappId";
 import pino from "pino";
-import { ERROR_MESSAGES, INVITE_TEMPLATE, SUCCESS_MESSAGES } from "../../utils/constants";
-import Group from "../models/group.model";
+import { ERROR_MESSAGES, INVITE_TEMPLATE, SUCCESS_MESSAGES } from "../utils/constants";
+import Group from "../api/models/group.model";
 /**
  * Add
  * @description Adds a participant to a group

@@ -1,11 +1,11 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-import Group from '../models/group.model';
-import Message from '../models/message.model';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+import Group from '../api/models/group.model';
+import Message from '../api/models/message.model';
 export default class DeleteMessage extends BaseCommand {
   private readonly logger = pino()
   private readonly allowedMethods: Method[] = ['reply']

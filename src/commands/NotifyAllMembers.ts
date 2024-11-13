@@ -1,10 +1,10 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class GroupLink extends BaseCommand {
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class NotifyAllMembers extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     if (!message.method) throw new Error('Method not found')
     if (!message.command) throw new Error('Command not found')
@@ -12,10 +12,17 @@ export default class GroupLink extends BaseCommand {
     if (!command.command_executor) throw new Error('Command executor not found')
     const groupMetadata = await this.validateCommand({ method: message.method, command, instance, store })
     if (!groupMetadata) return
-    const inviteCode = await instance.groupInviteCode(groupMetadata.id)
-    if (inviteCode && message.reply) {
-      message.reply(`Link do grupo: https://chat.whatsapp.com/${inviteCode}`)
-    }
+    let mentionText = ''
+    const mentions = groupMetadata.participants.map(p => {
+
+      mentionText += `@${p.id.split('@')[0]} `
+      return p.id
+    })
+    instance.sendMessage(groupMetadata.id, {
+      text: mentionText,
+      mentions: mentions
+    })
+
   }
   async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
     if (!props.command.groupId) {
@@ -44,6 +51,6 @@ export default class GroupLink extends BaseCommand {
   private readonly logger = pino()
   private readonly allowedMethods: Method[] = ['raw']
   constructor() {
-    super('link')
+    super('all')
   }
 }

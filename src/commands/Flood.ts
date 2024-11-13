@@ -1,14 +1,14 @@
 
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import Group from '../models/group.model';
-import { COMMAND_PREFIX } from '../../utils/constants';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class ToggleBrazilianOnly extends BaseCommand {
-  private async toggleBrazilOnly(groupId: string, onlyBrazil: boolean) {
+import Group from '../api/models/group.model';
+import { COMMAND_PREFIX } from '../utils/constants';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class Flood extends BaseCommand {
+  private async toggleAllowFlood(groupId: string, isFloodControlEnabled: boolean) {
     try {
       const existentGroup = await Group.findOne({
         groupId: groupId,
@@ -17,7 +17,7 @@ export default class ToggleBrazilianOnly extends BaseCommand {
         this.logger.info("Group not found");
         return;
       }
-      existentGroup.onlyBrazil = onlyBrazil
+      existentGroup.spamDetection = isFloodControlEnabled
       existentGroup.save();
       return true
     } catch (e) {
@@ -38,28 +38,20 @@ export default class ToggleBrazilianOnly extends BaseCommand {
       return
     }
     if (command.groupId) {
-      let enableGringosArg = command.args
+      let floodStatusArg = command.args
       if (command.args && typeof command.args === 'object') {
-        enableGringosArg = command.args[0]
+        floodStatusArg = command.args[0]
       }
-      if (enableGringosArg === 'on' || enableGringosArg === 'off') {
-        const isGringoEnabledStatus = await this.toggleBrazilOnly(command.groupId, enableGringosArg === 'off') // if gringos are enabled, then, onlyBrazil is false
-        if (isGringoEnabledStatus && message.reply) {
-          instance.sendMessage(command.groupId, {
-            text: `Os estrangeiros ${enableGringosArg === 'on' ? '' : 'não'} podem entrar nesse grupo`,
-            viewOnce: true,
-            time: 86400
-          })
+      if (floodStatusArg === 'on' || floodStatusArg === 'off') {
+        const allowFloodStatus = await this.toggleAllowFlood(command.groupId, floodStatusArg === 'on')
+        if (allowFloodStatus && message.reply) {
+          message.reply(`Detecção de flood ${floodStatusArg === 'on' ? 'ativado' : 'desativado'} com sucesso`)
         }
         return
       }
       if (message.reply) {
         this.logger.info('No args found or invalid args')
-        instance.sendMessage(command.groupId, {
-          text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_desabilita a entrada de estrangeiros no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_permite a entrada de estrangeiros no grupo_)`,
-          viewOnce: true,
-          time: 86400
-        })
+        message.reply(`Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_habilita o flood no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_desabilita flood no grupo_)`)
       }
     }
   }
@@ -89,6 +81,6 @@ export default class ToggleBrazilianOnly extends BaseCommand {
     return null
   }
   constructor() {
-    super('gringo')
+    super('flood')
   }
 }

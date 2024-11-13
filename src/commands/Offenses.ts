@@ -1,12 +1,12 @@
 
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import Group from '../models/group.model';
-import { COMMAND_PREFIX } from '../../utils/constants';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
+import Group from '../api/models/group.model';
+import { COMMAND_PREFIX } from '../utils/constants';
+import { getWhatsAppId } from '../utils/getWhatsappId';
 export default class Offenses extends BaseCommand {
   private async toggleAllowOffenses(groupId: string, turnOn: boolean) {
     try {

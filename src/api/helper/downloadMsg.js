@@ -1,7 +1,7 @@
 const { downloadContentFromMessage } = require("@whiskeysockets/baileys");
 /**
  *
- * @param {import('../class/messageTransformer').ExtendedWAMessageUpdate} msg
+ * @param {import("../../utils/messageTransformer").ExtendedWAMessageUpdate} msg
  * @param {import('@whiskeysockets/baileys').MediaType} msgType
  * @returns
  */
