@@ -1,10 +1,10 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class RevokeLink extends BaseCommand {
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class Rules extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     if (!message.method) throw new Error('Method not found')
     if (!message.command) throw new Error('Command not found')
@@ -12,9 +12,9 @@ export default class RevokeLink extends BaseCommand {
     if (!command.command_executor) throw new Error('Command executor not found')
     const groupMetadata = await this.validateCommand({ method: message.method, command, instance, store })
     if (!groupMetadata) return
-    const inviteCode = await instance.groupRevokeInvite(groupMetadata.id)
-    if (inviteCode && message.reply) {
-      message.reply('Link do grupo revogado, um novo link foi gerado.')
+    const description = groupMetadata.desc
+    if (description && message.reply) {
+      message.reply(`*Regras*:\n${description}`)
     }
   }
   async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
@@ -44,6 +44,6 @@ export default class RevokeLink extends BaseCommand {
   private readonly logger = pino()
   private readonly allowedMethods: Method[] = ['raw']
   constructor() {
-    super('revogar')
+    super('regras')
   }
 }

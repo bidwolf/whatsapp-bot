@@ -1,10 +1,11 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class Description extends BaseCommand {
+import { COMMAND_PREFIX } from '../utils/constants';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class ToggleChat extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     const { command, method } = message
     if (!command) {
@@ -17,12 +18,21 @@ export default class Description extends BaseCommand {
     if (!groupMetadata) {
       return
     }
-    if (command.args && typeof command.args === 'string') {
-      const description = command.args
-      instance.groupUpdateDescription(groupMetadata.id, description)
-    } else if (command.args && typeof command.args === 'object') {
-      const description = command.args.join(' ')
-      instance.groupUpdateDescription(groupMetadata.id, description)
+    let toggleCommandArgs = command.args
+    if (command.args && typeof command.args === 'object') {
+      toggleCommandArgs = command.args[0]
+    }
+    if (toggleCommandArgs === 'on') {
+      instance.groupSettingUpdate(groupMetadata.id, 'not_announcement')
+      return
+    }
+    if (toggleCommandArgs === 'off') {
+      instance.groupSettingUpdate(groupMetadata.id, 'announcement')
+      return
+    }
+    if (message.reply) {
+      this.logger.info('No args found or invalid args')
+      message.reply(`Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_permite que todos enviem mensagens no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_somente administradores podem enviar mensagens no grupo_)`)
     }
   }
   private readonly logger = pino()
@@ -35,8 +45,6 @@ export default class Description extends BaseCommand {
       throw new Error('Command executor not found')
     }
     const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-
     const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
     if (!groupMetadata) {
       throw new Error('Group metadata not found')
@@ -48,9 +56,8 @@ export default class Description extends BaseCommand {
       return isAllowed ? groupMetadata : null
     }
     return null
-
   }
   constructor() {
-    super('desc')
+    super('chat')
   }
 }

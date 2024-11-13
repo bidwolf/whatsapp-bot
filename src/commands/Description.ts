@@ -1,10 +1,10 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class UpdateStatus extends BaseCommand {
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class Description extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     const { command, method } = message
     if (!command) {
@@ -18,15 +18,11 @@ export default class UpdateStatus extends BaseCommand {
       return
     }
     if (command.args && typeof command.args === 'string') {
-      const status = command.args
-      await instance.updateProfileStatus(status)
-      const test = await instance.fetchStatus(instance.user?.id || '')
-      console.log(test)
+      const description = command.args
+      instance.groupUpdateDescription(groupMetadata.id, description)
     } else if (command.args && typeof command.args === 'object') {
-      const status = command.args.join(' ')
-      await instance.updateProfileStatus(status)
-      const test = await instance.fetchStatus(getWhatsAppId(instance.user?.id || ''))
-      console.log(test)
+      const description = command.args.join(' ')
+      instance.groupUpdateDescription(groupMetadata.id, description)
     }
   }
   private readonly logger = pino()
@@ -55,6 +51,6 @@ export default class UpdateStatus extends BaseCommand {
 
   }
   constructor() {
-    super('status')
+    super('desc')
   }
 }

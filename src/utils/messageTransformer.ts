@@ -6,11 +6,11 @@ import axios from 'axios';
 import moment from 'moment-timezone';
 import { sizeFormatter } from 'human-readable';
 import Jimp from 'jimp';
-import { MessageFilter } from "../../utils/MessageFilter";
+import { MessageFilter } from "./MessageFilter";
 import {
   CommandExtractor, Method, type BotCommand
-} from "../../utils/commands";
-import { TBaileysInMemoryStore } from "./BaileysInMemoryStore";
+} from "./commands";
+import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
 
 export type MSG = proto.IMessage & {
   contextInfo?: proto.ContextInfo;

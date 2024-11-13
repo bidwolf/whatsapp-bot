@@ -1,4 +1,4 @@
-import { ExtendedWAMessageUpdate } from "../api/class/messageTransformer";
+import { ExtendedWAMessageUpdate } from "../utils/messageTransformer";
 import RedisClient from "../config/redisClient";
 const redis = RedisClient.getInstance();
 export enum SpamCheckResult {

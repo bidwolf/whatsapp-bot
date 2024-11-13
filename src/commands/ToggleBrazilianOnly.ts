@@ -1,14 +1,14 @@
 
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import Group from '../models/group.model';
-import { COMMAND_PREFIX } from '../../utils/constants';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class ToggleBotStatus extends BaseCommand {
-  private async toggleBotStatus(groupId: string, isBotEnabled: boolean) {
+import Group from '../api/models/group.model';
+import { COMMAND_PREFIX } from '../utils/constants';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class ToggleBrazilianOnly extends BaseCommand {
+  private async toggleBrazilOnly(groupId: string, onlyBrazil: boolean) {
     try {
       const existentGroup = await Group.findOne({
         groupId: groupId,
@@ -17,7 +17,7 @@ export default class ToggleBotStatus extends BaseCommand {
         this.logger.info("Group not found");
         return;
       }
-      existentGroup.enabled = isBotEnabled
+      existentGroup.onlyBrazil = onlyBrazil
       existentGroup.save();
       return true
     } catch (e) {
@@ -38,15 +38,17 @@ export default class ToggleBotStatus extends BaseCommand {
       return
     }
     if (command.groupId) {
-      let botStatusArgs = command.args
+      let enableGringosArg = command.args
       if (command.args && typeof command.args === 'object') {
-        botStatusArgs = command.args[0]
+        enableGringosArg = command.args[0]
       }
-      if (botStatusArgs === 'on' || botStatusArgs === 'off') {
-        const isInviteToggleStatus = await this.toggleBotStatus(command.groupId, botStatusArgs === 'on')
-        if (isInviteToggleStatus && message.reply) {
+      if (enableGringosArg === 'on' || enableGringosArg === 'off') {
+        const isGringoEnabledStatus = await this.toggleBrazilOnly(command.groupId, enableGringosArg === 'off') // if gringos are enabled, then, onlyBrazil is false
+        if (isGringoEnabledStatus && message.reply) {
           instance.sendMessage(command.groupId, {
-            text: `Bot ${botStatusArgs === 'off' ? 'des' : 'h'}abilitado.`,
+            text: `Os estrangeiros ${enableGringosArg === 'on' ? '' : 'não'} podem entrar nesse grupo`,
+            viewOnce: true,
+            time: 86400
           })
         }
         return
@@ -54,7 +56,9 @@ export default class ToggleBotStatus extends BaseCommand {
       if (message.reply) {
         this.logger.info('No args found or invalid args')
         instance.sendMessage(command.groupId, {
-          text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_habilita o bot no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_desabilita o bot no grupo_)`,
+          text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_desabilita a entrada de estrangeiros no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_permite a entrada de estrangeiros no grupo_)`,
+          viewOnce: true,
+          time: 86400
         })
       }
     }
@@ -85,6 +89,6 @@ export default class ToggleBotStatus extends BaseCommand {
     return null
   }
   constructor() {
-    super('bot')
+    super('gringo')
   }
 }

@@ -1,5 +1,5 @@
 import { GroupMetadata } from "@whiskeysockets/baileys";
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../api/class/messageTransformer";
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
 import { COMMAND_PREFIX } from "./constants";
 import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
 

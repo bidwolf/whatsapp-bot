@@ -1,16 +1,15 @@
 import { Job } from "bull";
-import { WhatsAppInstance } from "../api/class/instance";
 import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
-import { ExtendedWAMessageUpdate, ExtendedWaSocket, transformMessageUpdate } from "../api/class/messageTransformer";
 import Message from "../api/models/message.model";
 import Group from "../api/models/group.model";
-import commandDispatcher from "../api/class/commandDispatcher";
+import initializeCommandDispatcher from "../utils/commandDispatcher";
 import P from "pino";
 import spamCheck, { SpamCheckResult } from "../utils/spamCheck";
 import { getWhatsAppId } from "../utils/getWhatsappId";
 import { checkImageContent, checkVideoContent } from "../utils/checkImageContent";
 import downloadMsg from "../api/helper/downloadMsg";
 import { MediaType } from "@whiskeysockets/baileys";
+import { ExtendedWAMessageUpdate, transformMessageUpdate } from "../utils/messageTransformer";
 const logger = P();
 export interface ProcessMessageJobData {
   message: ExtendedWAMessageUpdate
@@ -144,7 +143,7 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
         parsedMessage.command.command_name &&
         parsedMessage.command.command_executor
       ) {
-        commandDispatcher(
+        initializeCommandDispatcher(
           instance.instance.sock,
           parsedMessage,
           groupAvailable,

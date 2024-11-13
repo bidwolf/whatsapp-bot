@@ -1,14 +1,14 @@
 
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import Group from '../models/group.model';
-import { COMMAND_PREFIX } from '../../utils/constants';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class Flood extends BaseCommand {
-  private async toggleAllowFlood(groupId: string, isFloodControlEnabled: boolean) {
+import Group from '../api/models/group.model';
+import { COMMAND_PREFIX } from '../utils/constants';
+import { getWhatsAppId } from '../utils/getWhatsappId';
+export default class ToggleNSFW extends BaseCommand {
+  private async toggleBotStatus(groupId: string, isNSFWEnabled: boolean) { //NSFW = Not Safe For Work
     try {
       const existentGroup = await Group.findOne({
         groupId: groupId,
@@ -17,7 +17,7 @@ export default class Flood extends BaseCommand {
         this.logger.info("Group not found");
         return;
       }
-      existentGroup.spamDetection = isFloodControlEnabled
+      existentGroup.allowNSFW = isNSFWEnabled
       existentGroup.save();
       return true
     } catch (e) {
@@ -38,20 +38,24 @@ export default class Flood extends BaseCommand {
       return
     }
     if (command.groupId) {
-      let floodStatusArg = command.args
+      let toggleNSFWArgs = command.args
       if (command.args && typeof command.args === 'object') {
-        floodStatusArg = command.args[0]
+        toggleNSFWArgs = command.args[0]
       }
-      if (floodStatusArg === 'on' || floodStatusArg === 'off') {
-        const allowFloodStatus = await this.toggleAllowFlood(command.groupId, floodStatusArg === 'on')
-        if (allowFloodStatus && message.reply) {
-          message.reply(`Detecção de flood ${floodStatusArg === 'on' ? 'ativado' : 'desativado'} com sucesso`)
+      if (toggleNSFWArgs === 'on' || toggleNSFWArgs === 'off') {
+        const isQueryNSFWSuccessful = await this.toggleBotStatus(command.groupId, toggleNSFWArgs === 'off') // if antiPorn is off, allowNSFW is true
+        if (isQueryNSFWSuccessful && message.reply) {
+          instance.sendMessage(command.groupId, {
+            text: `Conteúdo impróprio ${toggleNSFWArgs === 'on' ? 'des' : 'h'}abilitado.`,
+          })
         }
         return
       }
       if (message.reply) {
         this.logger.info('No args found or invalid args')
-        message.reply(`Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_habilita o flood no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_desabilita flood no grupo_)`)
+        instance.sendMessage(command.groupId, {
+          text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_Proíbe conteúdo impróprio no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_Permite o envio de conteúdo impróprio no grupo_)`,
+        })
       }
     }
   }
@@ -81,6 +85,6 @@ export default class Flood extends BaseCommand {
     return null
   }
   constructor() {
-    super('flood')
+    super('antiporn')
   }
 }

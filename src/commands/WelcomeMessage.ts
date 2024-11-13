@@ -1,10 +1,11 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
-export default class Rename extends BaseCommand {
+import { getWhatsAppId } from '../utils/getWhatsappId';
+import Group from '../api/models/group.model';
+export default class WelcomeMessage extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
     const { command, method } = message
     if (!command) {
@@ -18,11 +19,26 @@ export default class Rename extends BaseCommand {
       return
     }
     if (command.args && typeof command.args === 'string') {
-      const description = command.args
-      instance.groupUpdateSubject(groupMetadata.id, description)
+      const welcomeMessage = command.args
+      this.updateWelcomeMessage(groupMetadata.id, welcomeMessage)
+      message.reply?.(`Mensagem de boas-vindas atualizada com sucesso`)
     } else if (command.args && typeof command.args === 'object') {
-      const description = command.args.join(' ')
-      instance.groupUpdateSubject(groupMetadata.id, description)
+      const welcomeMessage = command.args.join(' ')
+      this.updateWelcomeMessage(groupMetadata.id, welcomeMessage)
+      message.reply?.(`Mensagem de boas-vindas atualizada com sucesso`)
+    }
+  }
+  private async updateWelcomeMessage(groupId: string, welcomeMessage: string) {
+    try {
+      const group = await Group.findOne({ groupId: groupId }).exec()
+      if (!group) {
+        this.logger.info("Group not found")
+        return
+      }
+      group.welcomeMessage = welcomeMessage
+      group.save()
+    } catch (error) {
+      this.logger.error(`Error updating welcome message: ${error}`)
     }
   }
   private readonly logger = pino()
@@ -48,6 +64,6 @@ export default class Rename extends BaseCommand {
     return null
   }
   constructor() {
-    super('nome')
+    super('msg')
   }
 }

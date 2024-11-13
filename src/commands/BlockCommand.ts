@@ -1,10 +1,10 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../../utils/commands';
+import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
 import { GroupMetadata } from '@whiskeysockets/baileys';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../class/messageTransformer';
-import { TBaileysInMemoryStore } from '../class/BaileysInMemoryStore';
-import Group from '../models/group.model';
-import { getWhatsAppId } from '../../utils/getWhatsappId';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';
+import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
+import Group from '../api/models/group.model';
+import { getWhatsAppId } from '../utils/getWhatsappId';
 
 export default class BlockCommand extends BaseCommand {
   private readonly logger = pino()
