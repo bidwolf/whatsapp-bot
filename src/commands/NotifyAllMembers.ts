@@ -2,15 +2,14 @@ import pino from 'pino';
 import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
 import { GroupMetadata } from '@whiskeysockets/baileys';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
-import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
 import { getWhatsAppId } from '../utils/getWhatsappId';
 export default class NotifyAllMembers extends BaseCommand {
-  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
+  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
     if (!message.method) throw new Error('Method not found')
     if (!message.command) throw new Error('Command not found')
     const command = message.command
     if (!command.command_executor) throw new Error('Command executor not found')
-    const groupMetadata = await this.validateCommand({ method: message.method, command, instance, store })
+    const groupMetadata = await this.validateCommand({ method: message.method, command, instance })
     if (!groupMetadata) return
     let mentionText = ''
     const mentions = groupMetadata.participants.map(p => {
@@ -34,7 +33,7 @@ export default class NotifyAllMembers extends BaseCommand {
 
     const whatsAppId = getWhatsAppId(props.command.command_executor)
 
-    // If the store is not available, use the socket to fetch the group metadata
+
     const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
     if (!groupMetadata) return null
     const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)

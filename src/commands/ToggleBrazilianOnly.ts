@@ -1,7 +1,6 @@
 
 import pino from 'pino';
 import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
-import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import { GroupMetadata } from '@whiskeysockets/baileys';
 import Group from '../api/models/group.model';
@@ -25,7 +24,7 @@ export default class ToggleBrazilianOnly extends BaseCommand {
     }
     return false
   }
-  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
+  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
     const { command, method } = message
     if (!command) {
       throw new Error('Command not found')
@@ -33,7 +32,7 @@ export default class ToggleBrazilianOnly extends BaseCommand {
     if (!method) {
       throw new Error('Method not found')
     }
-    const groupMetadata = await this.validateCommand({ command, method, instance, store })
+    const groupMetadata = await this.validateCommand({ command, method, instance })
     if (!groupMetadata) {
       return
     }
