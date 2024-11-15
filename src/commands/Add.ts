@@ -5,7 +5,7 @@ import { getWhatsAppId } from "../utils/getWhatsappId";
 import pino from "pino";
 import { ERROR_MESSAGES, INVITE_TEMPLATE, SUCCESS_MESSAGES } from "../utils/constants";
 import ValidateMethods from "../validators/ValidateMethods";
-import ValidateAdmin from "../validators/ValidateAdmin";
+import ValidateExecutorAdmin from "../validators/ValidateExecutorAdmin";
 import ValidateNumber from "../validators/ValidateNumber";
 import ValidationRunner from "../validators/ValidationRunner";
 /**
@@ -94,7 +94,7 @@ export default class Add extends BaseCommand {
 
   constructor() {
     const methodValidator = new ValidateMethods(["raw", "reply"])
-    const adminValidator = new ValidateAdmin()
+    const adminValidator = new ValidateExecutorAdmin()
     const validateNumber = new ValidateNumber()
     super("add", new ValidationRunner([adminValidator, methodValidator, validateNumber]))
   }

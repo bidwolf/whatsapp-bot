@@ -4,9 +4,9 @@ import { sanitizeNumber } from "../utils/conversionHelpers";
 import { getWhatsAppId } from "../utils/getWhatsappId";
 import pino from "pino";
 import { SUCCESS_MESSAGES } from "../utils/constants";
-import ValidateAdmin from "../validators/ValidateAdmin";
+import ValidateExecutorAdmin from "../validators/ValidateExecutorAdmin";
 import ValidateMethods from "../validators/ValidateMethods";
-import ValidateNotSelf from "../validators/ValidateNotSelf";
+import ValidateParticipantNotSelf from "../validators/ValidateParticipantNotSelf";
 import ValidateParticipantExists from "../validators/ValidateParticipantExists";
 import ValidationRunner from "../validators/ValidationRunner";
 /**
@@ -47,10 +47,10 @@ export default class Adm extends BaseCommand {
     }
   }
   constructor() {
-    const adminValidator = new ValidateAdmin()
+    const adminValidator = new ValidateExecutorAdmin()
     const methodValidator = new ValidateMethods(['raw', 'reply', 'mention'])
     const participantExistsValidator = new ValidateParticipantExists()
-    const notSelfValidator = new ValidateNotSelf()
+    const notSelfValidator = new ValidateParticipantNotSelf()
     super(
       "adm",
       new ValidationRunner([adminValidator, methodValidator, participantExistsValidator, notSelfValidator])
