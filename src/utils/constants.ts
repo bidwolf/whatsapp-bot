@@ -3,7 +3,7 @@ export const ERROR_MESSAGES = {
   NOT_ADMIN: 'Você não é um administrador do grupo',
   BAN_ADMIN: 'Não é possível banir um administrador',
   NOT_FOUND: 'Este número não foi encontrado no grupo',
-  NO_VCARD: 'Você deve responder a uma mensagem de contato',
+  NO_VCARD: 'Você deve responder a uma mensagem de contato para adicionar um novo membro',
   ALREADY_EXISTS: "O número já está no grupo.",
   ADD_DIRECTLY: "Não foi possível adicionar esse número diretamente ao grupo. Um convite foi enviado mas ainda pode ser recusado.",
   SELF_ADM_CHANGE: "Você não pode alterar seu próprio status de administrador.",
