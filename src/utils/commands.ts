@@ -1,6 +1,6 @@
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
 import { COMMAND_PREFIX } from "./constants";
-import { CommandValidator } from "../validators";
+import { CommandValidator, Validator } from "../validators";
 
 export type BotCommand = {
   command_name: string;
@@ -15,7 +15,7 @@ export type Method = "mention" | "reply" | "raw"
  */
 interface ICommand {
   command_name: string;
-  validators: CommandValidator[]
+  validator: Validator
   execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
 }
 interface ICommandExtractor {
@@ -23,10 +23,10 @@ interface ICommandExtractor {
 }
 export abstract class BaseCommand implements ICommand {
   command_name: string;
-  validators: CommandValidator[];
-  constructor(command_name: string, validators: CommandValidator[]) {
+  validator: Validator
+  constructor(command_name: string, validator: Validator) {
     this.command_name = command_name
-    this.validators = validators
+    this.validator = validator
   }
   abstract execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
 }
