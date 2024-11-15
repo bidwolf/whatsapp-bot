@@ -1,7 +1,7 @@
 import { CommandValidator, ValidateProps } from '.';
 import { getWhatsAppId } from '../utils/getWhatsappId';
 export type ParticipantPermission = 'admin' | 'superadmin' | null | undefined
-export default abstract class ValidatePermission implements CommandValidator {
+export default abstract class ValidateExecutorPermission implements CommandValidator {
   async validate({ command, metadata }: ValidateProps): Promise<Boolean> {
     if (!this.permission) return true // Usuário não precisa de nenhum tipo de permissão
     if (!command || !command.groupId || !command.command_executor || !metadata) return false
