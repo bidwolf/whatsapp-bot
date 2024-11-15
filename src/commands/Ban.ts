@@ -1,10 +1,15 @@
-import type { GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
-import { BaseCommand, Method, validateCommandProps } from "../utils/commands";
+import { BaseCommand } from "../utils/commands";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
 import { sanitizeNumber } from "../utils/conversionHelpers";
 import { getWhatsAppId } from "../utils/getWhatsappId";
 import pino from "pino";
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../utils/constants";
+import { SUCCESS_MESSAGES } from "../utils/constants";
+import ValidateMethods from "../validators/ValidateMethods";
+import ValidateExecutorAdmin from "../validators/ValidateExecutorAdmin";
+import ValidateNumber from "../validators/ValidateNumber";
+import ValidationRunner from "../validators/ValidationRunner";
+import ValidateParticipantNotAdmin from "../validators/ValidateParticipantNotAdmin";
+import ValidateParticipantNotSelf from "../validators/ValidateParticipantNotSelf";
 
 /**
  * Ban
@@ -14,30 +19,18 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../utils/constants";
 export default class Ban extends BaseCommand {
   private readonly logger = pino()
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    if (!message.method) throw new Error('Method not found')
-    if (!message.command) throw new Error('Command not found')
-    const command = message.command
-    const { args } = command
-    const groupMetadata = await this.validateCommand({ method: message.method, command, instance })
-    if (!groupMetadata || !args) return
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) return
+    const args = message.command?.args
     const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber)
-      const participant = groupMetadata.participants.find(p => p.id === getWhatsAppId(sanitizedNumber))
-      if (!participant) {
-        this.logger.info(
-          `User ${sanitizedNumber} not found in group ${groupMetadata.id}`
-        )
-        message.reply(ERROR_MESSAGES.NOT_FOUND)
-        return
-      }
-      if (participant.admin) {
-        this.logger.info(
-          `Cannot ban admin ${sanitizedNumber}`
-        )
-        message.reply(ERROR_MESSAGES.BAN_ADMIN)
-        return
-      }
       const result = await instance.groupParticipantsUpdate(
         groupMetadata.id,
         [getWhatsAppId(sanitizedNumber)],
@@ -51,35 +44,15 @@ export default class Ban extends BaseCommand {
       }
     }
   }
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (props.command.command_executor == undefined) {
-      throw new Error('Command executor not found')
-    }
-
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) return null
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-    if (isAdmin) {
-      if (!this.allowedMethods.includes(props.method)) {
-        this.logger.info(
-          `Method ${props.method} not allowed`
-        )
-      }
-      return this.allowedMethods.includes(props.method) ? groupMetadata : null
-    }
-
-    return null
-  }
-  private readonly allowedMethods: Method[] = ["mention", "reply"]
   constructor() {
+    const methodValidator = new ValidateMethods(["mention", "reply"])
+    const adminValidator = new ValidateExecutorAdmin()
+    const validateNumber = new ValidateNumber()
+    const participantNotAdmin = new ValidateParticipantNotAdmin()
+    const participantNotSelf = new ValidateParticipantNotSelf()
     super(
-      "ban"
+      "ban",
+      new ValidationRunner([methodValidator, adminValidator, validateNumber, participantNotAdmin, participantNotSelf])
     )
   }
 
