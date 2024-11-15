@@ -17,7 +17,7 @@ export default class Adm extends BaseCommand {
   private readonly logger = pino()
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
     const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
-    const valid = this.validator.runValidations({
+    const valid = await this.validator.runValidations({
       command: message.command,
       metadata: groupMetadata,
       method: message.method,
