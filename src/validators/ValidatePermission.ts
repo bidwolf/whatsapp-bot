@@ -7,7 +7,10 @@ export default abstract class ValidatePermission implements CommandValidator {
     if (!command || !command.groupId || !command.command_executor || !metadata) return false
     const executorWhatsappId = getWhatsAppId(command.command_executor)
     const isAdmin = metadata.participants.find(participant => participant.id === executorWhatsappId)?.admin
-    return Boolean(isAdmin)
+    if (isAdmin) {
+      return true
+    }
+    return false
   }
   constructor(private readonly permission: ParticipantPermission) { }
 }

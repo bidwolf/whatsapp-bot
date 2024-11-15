@@ -6,7 +6,8 @@ import pino from "pino";
 import { ERROR_MESSAGES, INVITE_TEMPLATE, SUCCESS_MESSAGES } from "../utils/constants";
 import ValidateMethods from "../validators/ValidateMethods";
 import ValidateAdmin from "../validators/ValidateAdmin";
-import ValidateNumber from "../validators/validateNumber";
+import ValidateNumber from "../validators/ValidateNumber";
+import ValidationRunner from "../validators/ValidationRunner";
 /**
  * Add
  * @description Adds a participant to a group
@@ -22,13 +23,11 @@ export default class Add extends BaseCommand {
   }
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
     const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
-    const valid = this.validators.every(validator => {
-      return validator.validate({
-        command: message.command,
-        metadata: groupMetadata,
-        method: message.method,
-        reply: message.reply
-      })
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
     })
     if (!valid) return
     const args = message.command?.args
@@ -97,7 +96,7 @@ export default class Add extends BaseCommand {
     const methodValidator = new ValidateMethods(["raw", "reply"])
     const adminValidator = new ValidateAdmin()
     const validateNumber = new ValidateNumber()
-    super("add", [adminValidator, methodValidator, validateNumber])
+    super("add", new ValidationRunner([adminValidator, methodValidator, validateNumber]))
   }
 
 }
