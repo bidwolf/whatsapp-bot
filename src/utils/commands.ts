@@ -1,6 +1,6 @@
-import { GroupMetadata } from "@whiskeysockets/baileys";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
 import { COMMAND_PREFIX } from "./constants";
+import { CommandValidator } from "../validators";
 
 export type BotCommand = {
   command_name: string;
@@ -9,26 +9,26 @@ export type BotCommand = {
   command_executor: string | undefined;
 }
 export type Method = "mention" | "reply" | "raw"
-export type validateCommandProps = { command: BotCommand, method: Method, instance: ExtendedWaSocket }
 /**
  * BaseCommand
  * @description Base class for all commands for enforcing a common interface
  */
 interface ICommand {
   command_name: string;
+  validators: CommandValidator[]
   execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
-  validateCommand(props: validateCommandProps): Promise<GroupMetadata | null>;
 }
 interface ICommandExtractor {
   retrieveCommandDetails(): { command: BotCommand | undefined, method: Method }
 }
 export abstract class BaseCommand implements ICommand {
   command_name: string;
-  constructor(command_name: string) {
+  validators: CommandValidator[];
+  constructor(command_name: string, validators: CommandValidator[]) {
     this.command_name = command_name
+    this.validators = validators
   }
   abstract execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
-  abstract validateCommand(props: validateCommandProps): Promise<GroupMetadata | null>;
 }
 export class CommandExtractor implements ICommandExtractor {
   private isMention = () => {
