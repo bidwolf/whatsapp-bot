@@ -1,0 +1,16 @@
+{
+	"create new validator":{
+		"scope": "typescript",
+		"prefix": "commandValidator",
+		"body": [
+      "import { CommandValidator, ValidateProps } from '.';",
+"export default class ${TM_FILENAME/(.*)\\..+$/${1:/capitalize}/} implements CommandValidator {",
+  "async validate(props: ValidateProps): Promise<Boolean> {",
+    "throw new Error('Method not implemented.');",
+  "}",
+"}",
+		],
+		"description": "Create a new validator class for the whatsapp bot command",
+		"isFileTemplate": true,
+	}
+}
