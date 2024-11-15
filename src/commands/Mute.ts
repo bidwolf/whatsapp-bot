@@ -1,39 +1,18 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
-import { GroupMetadata } from '@whiskeysockets/baileys';
+import { BaseCommand } from '../utils/commands';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
 import Group from '../api/models/group.model';
 import { getWhatsAppId } from '../utils/getWhatsappId';
 import { sanitizeNumber } from '../utils/conversionHelpers';
+import ValidateExecutorAdmin from '../validators/ValidateExecutorAdmin';
+import ValidateMethods from '../validators/ValidateMethods';
+import ValidationRunner from '../validators/ValidationRunner';
+import ValidateParticipantNotAdmin from '../validators/ValidateParticipantNotAdmin';
+import ValidateParticipantNotSelf from '../validators/ValidateParticipantNotSelf';
 
 export default class MuteCommand extends BaseCommand {
   private readonly logger = pino()
-  private readonly allowedMethods: Method[] = ['reply', 'mention']
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (props.command.command_executor == undefined) {
-      throw new Error('Command executor not found')
-    }
-
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) return null
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-    if (isAdmin) {
-      if (!this.allowedMethods.includes(props.method)) {
-        this.logger.info(
-          `Method ${props.method} not allowed`
-        )
-      }
-      return this.allowedMethods.includes(props.method) ? groupMetadata : null
-    }
-    return null
-  }
-  async muteUser(groupId: string, userJid: string): Promise<boolean> {
+  private async muteUser(groupId: string, userJid: string): Promise<boolean> {
     try {
       const existentGroup = await Group.findOne({
         groupId: groupId,
@@ -57,40 +36,22 @@ export default class MuteCommand extends BaseCommand {
     }
   }
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    const { command, method } = message
-    if (!command || !command.groupId) {
-      throw new Error('Command not found')
-    }
-    if (!method) {
-      throw new Error('Method not found')
-    }
-    const groupMetadata = await this.validateCommand({ command, method, instance })
-    if (!groupMetadata) {
-      return
-    }
-    const { args } = command
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) return
+    const args = message.command?.args
     if (!args) {
       throw new Error('Args not found')
     }
     const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber)
-      const participant = groupMetadata.participants.find(p => p.id === getWhatsAppId(sanitizedNumber))
-      if (!participant) {
-        this.logger.info(
-          `User ${sanitizedNumber} not found in group ${groupMetadata.id}`
-        )
-        message.reply('Usuário não encontrado.')
-        return
-      }
-      if (participant.admin) {
-        this.logger.info(
-          `Cannot mute admin ${sanitizedNumber}`
-        )
-        message.reply('Não é possível silenciar um administrador.')
-        return
-      }
-      const isUserSilenced = await this.muteUser(command.groupId, getWhatsAppId(sanitizedNumber))
+      const isUserSilenced = await this.muteUser(message.command?.groupId || '', getWhatsAppId(sanitizedNumber))
       if (isUserSilenced) {
         this.logger.info("Participant muted");
         message.reply('Usuário silenciado com sucesso.')
@@ -101,6 +62,11 @@ export default class MuteCommand extends BaseCommand {
     }
   }
   constructor() {
-    super('mute')
+    const validateExecutorAdmin = new ValidateExecutorAdmin()
+    const validateMethods = new ValidateMethods(['reply', 'mention'])
+    const validateParticipantNotAdmin = new ValidateParticipantNotAdmin()
+    const validateParticipantNotSelf = new ValidateParticipantNotSelf()
+
+    super('mute', new ValidationRunner([validateExecutorAdmin, validateMethods, validateParticipantNotAdmin, validateParticipantNotSelf]))
   }
 }
