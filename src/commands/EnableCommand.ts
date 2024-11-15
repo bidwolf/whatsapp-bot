@@ -8,7 +8,7 @@ import ValidateMethods from '../validators/ValidateMethods';
 
 export default class EnableCommand extends BaseCommand {
   private readonly logger = pino()
-  async enableCommand(groupId: string, command: string): Promise<boolean> {
+  private async setCommandEnabled(groupId: string, command: string): Promise<boolean> {
     try {
       if (command === 'on' || command === 'off' || command === 'bot') {
         return false
@@ -49,7 +49,7 @@ export default class EnableCommand extends BaseCommand {
     if (args && typeof args === 'object') {
       commandToEnable = command.args[0]
     }
-    const isCommandEnabled = await this.enableCommand(command?.groupId || '', commandToEnable)
+    const isCommandEnabled = await this.setCommandEnabled(command?.groupId || '', commandToEnable)
     if (isCommandEnabled) {
       if (message.reply) {
         message.reply(`Comando ${commandToEnable} habilitado com sucesso`)
