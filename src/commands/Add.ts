@@ -1,7 +1,6 @@
 import type { GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
 import { BaseCommand, Method, validateCommandProps } from "../utils/commands";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
-import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
 import { isBrazilianNumber, sanitizeNumber } from "../utils/conversionHelpers";
 import { getWhatsAppId } from "../utils/getWhatsappId";
 import pino from "pino";
@@ -13,11 +12,11 @@ import Group from "../api/models/group.model";
  */
 export default class Add extends BaseCommand {
   private readonly logger = pino()
-  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void> {
+  async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
     if (!message.method) throw new Error('Method not found')
     if (!message.command) throw new Error('Command not found')
     const { args } = message.command
-    const groupMetadata = await this.validateCommand({ method: message.method, command: message.command, instance, store })
+    const groupMetadata = await this.validateCommand({ method: message.method, command: message.command, instance })
     const group = await Group.findOne({ groupId: message.command.groupId }).exec();
     if (!group) {
       this.logger.info("Group not found");
@@ -96,16 +95,13 @@ export default class Add extends BaseCommand {
     }
   }
   async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-    // First, use the store to fetch the group metadata
     if (!props.command.groupId) {
       throw new Error('Group ID not found')
     }
     if (props.command.command_executor == undefined) {
       throw new Error('Command executor not found')
     }
-
     const whatsAppId = getWhatsAppId(props.command.command_executor)
-    // If the store is not available, use the socket to fetch the group metadata
     const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
     if (!groupMetadata) return null
     const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)

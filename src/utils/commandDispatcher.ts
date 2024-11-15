@@ -2,7 +2,6 @@ import fs from 'fs';
 import { BaseCommand } from './commands';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from './messageTransformer';
 import { IGroup } from '../api/models/group.model';
-import { TBaileysInMemoryStore } from '../api/class/BaileysInMemoryStore';
 import pino from 'pino';
 const logger = pino()
 
@@ -48,7 +47,7 @@ class CommandDispatcher {
             this.commands.set(commandInstance.command_name, commandInstance);
         });
     }
-    constructor(private readonly instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, private readonly group: IGroup, private readonly store: TBaileysInMemoryStore) {
+    constructor(private readonly instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, private readonly group: IGroup) {
         this.registerCommands()
     }
     async run() {
@@ -61,15 +60,15 @@ class CommandDispatcher {
             return
         }
         try {
-            await cmd.execute(this.m, this.instance, this.store)
+            await cmd.execute(this.m, this.instance)
         } catch (e) {
             this.logger.error(e)
         }
     }
 }
-const initializeCommandDispatcher = async (instance: ExtendedWaSocket, m: ExtendedWAMessageUpdate, group: IGroup, store: TBaileysInMemoryStore) => {
+const initializeCommandDispatcher = async (instance: ExtendedWaSocket, m: ExtendedWAMessageUpdate, group: IGroup) => {
     try {
-        const app = new CommandDispatcher(instance, m, group, store);
+        const app = new CommandDispatcher(instance, m, group);
         app.run()
     } catch (e) {
         logger.error(e);

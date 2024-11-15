@@ -1,7 +1,6 @@
 import { GroupMetadata } from "@whiskeysockets/baileys";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
 import { COMMAND_PREFIX } from "./constants";
-import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
 
 export type BotCommand = {
   command_name: string;
@@ -10,14 +9,14 @@ export type BotCommand = {
   command_executor: string | undefined;
 }
 export type Method = "mention" | "reply" | "raw"
-export type validateCommandProps = { command: BotCommand, method: Method, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore }
+export type validateCommandProps = { command: BotCommand, method: Method, instance: ExtendedWaSocket }
 /**
  * BaseCommand
  * @description Base class for all commands for enforcing a common interface
  */
 interface ICommand {
   command_name: string;
-  execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void>;
+  execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
   validateCommand(props: validateCommandProps): Promise<GroupMetadata | null>;
 }
 interface ICommandExtractor {
@@ -28,7 +27,7 @@ export abstract class BaseCommand implements ICommand {
   constructor(command_name: string) {
     this.command_name = command_name
   }
-  abstract execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket, store?: TBaileysInMemoryStore): Promise<void>;
+  abstract execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
   abstract validateCommand(props: validateCommandProps): Promise<GroupMetadata | null>;
 }
 export class CommandExtractor implements ICommandExtractor {

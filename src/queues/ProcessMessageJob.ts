@@ -10,6 +10,7 @@ import { checkImageContent, checkVideoContent } from "../utils/checkImageContent
 import downloadMsg from "../api/helper/downloadMsg";
 import { MediaType } from "@whiskeysockets/baileys";
 import { ExtendedWAMessageUpdate, transformMessageUpdate } from "../utils/messageTransformer";
+import { getMediaType } from "../utils/getMediaType";
 const logger = P();
 export interface ProcessMessageJobData {
   message: ExtendedWAMessageUpdate
@@ -102,10 +103,6 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
         timestamp: new Date()
       });
       await newMessage.save();
-      // Relacionar a mensagem com o grupo
-
-      // Salvar a mensagem no MongoDB
-
       const group = await Group.findOne({ groupId: parsedMessage.key.remoteJid }).exec();
       if (!group) {
         logger.info("Group not found");
@@ -147,7 +144,6 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
           instance.instance.sock,
           parsedMessage,
           groupAvailable,
-          store,
         );
       }
     }
@@ -155,20 +151,7 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
     console.error(e)
   }
 }
-const getMediaType = (mtype: string): MediaType => {
-  switch (mtype) {
-    case 'imageMessage':
-      return "image"
-    case 'stickerMessage':
-      return 'sticker'
-    case 'videoMessage':
-      return 'video'
-    case 'audioMessage':
-      return 'audio'
-    default:
-      return 'document'
-  }
-}
+
 export default processMessageJob;
 
 module.exports = processMessageJob;
