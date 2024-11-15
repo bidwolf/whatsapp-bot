@@ -6,3 +6,7 @@ export type ValidateProps = { command?: BotCommand, method?: Method, metadata?: 
 export type CommandValidator = {
   validate(props: ValidateProps): Promise<Boolean>
 }
+export type Validator = {
+  runValidations(props: ValidateProps): Promise<Boolean>
+}
+
