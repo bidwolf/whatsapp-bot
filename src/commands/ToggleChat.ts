@@ -1,6 +1,6 @@
 import pino from 'pino';
 import { BaseCommand } from '../utils/commands';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';
 import { COMMAND_PREFIX } from '../utils/constants';
 import ValidationRunner from '../validators/ValidationRunner';
 import ValidateMethods from '../validators/ValidateMethods';
