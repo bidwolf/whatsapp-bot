@@ -19,7 +19,7 @@ export default class RevokeLink extends BaseCommand {
     }
     const inviteCode = await instance.groupRevokeInvite(groupMetadata.id)
     if (inviteCode && message.reply) {
-      this.logger.info('group link revoked')
+      this.logger.info('Group link revoked')
       message.reply('Link do grupo revogado, um novo link foi gerado.')
     }
   }

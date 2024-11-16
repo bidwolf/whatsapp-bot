@@ -19,7 +19,7 @@ export default class GroupLink extends BaseCommand {
     }
     const inviteCode = await instance.groupInviteCode(groupMetadata.id)
     if (inviteCode && message.reply) {
-      this.logger.info('group link sent')
+      this.logger.info('Group link sent')
       message.reply(`Link do grupo: https://chat.whatsapp.com/${inviteCode}`)
     }
   }
