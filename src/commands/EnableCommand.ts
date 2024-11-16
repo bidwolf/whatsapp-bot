@@ -1,38 +1,14 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
-import { GroupMetadata } from '@whiskeysockets/baileys';
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
+import { BaseCommand } from '../utils/commands';
+import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';
 import Group from '../api/models/group.model';
-import { getWhatsAppId } from '../utils/getWhatsappId';
+import ValidationRunner from '../validators/ValidationRunner';
+import ValidateExecutorAdmin from '../validators/ValidateExecutorAdmin';
+import ValidateMethods from '../validators/ValidateMethods';
 
 export default class EnableCommand extends BaseCommand {
   private readonly logger = pino()
-  private readonly allowedMethods: Method[] = ['raw']
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (props.command.command_executor == undefined) {
-      throw new Error('Command executor not found')
-    }
-
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) return null
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-    if (isAdmin) {
-      if (!this.allowedMethods.includes(props.method)) {
-        this.logger.info(
-          `Method ${props.method} not allowed`
-        )
-      }
-      return this.allowedMethods.includes(props.method) ? groupMetadata : null
-    }
-    return null
-  }
-  async enableCommand(groupId: string, command: string): Promise<boolean> {
+  private async setCommandEnabled(groupId: string, command: string): Promise<boolean> {
     try {
       if (command === 'on' || command === 'off' || command === 'bot') {
         return false
@@ -51,7 +27,7 @@ export default class EnableCommand extends BaseCommand {
         return true
       }
       existentGroup.blockedCommands = existentGroup.blockedCommands.filter(c => c !== command)
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)
@@ -59,26 +35,21 @@ export default class EnableCommand extends BaseCommand {
     }
   }
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    const { command, method } = message
-    if (!command || !command.groupId) {
-      throw new Error('Command not found')
-    }
-    if (!method) {
-      throw new Error('Method not found')
-    }
-    const groupMetadata = await this.validateCommand({ command, method, instance })
-    if (!groupMetadata) {
-      return
-    }
-    const { args } = command
-    if (!args) {
-      throw new Error('Args not found')
-    }
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) return
+    const { command } = message
+    const args = command?.args
     let commandToEnable = args
-    if (command.args && typeof command.args === 'object') {
+    if (args && typeof args === 'object') {
       commandToEnable = command.args[0]
     }
-    const isCommandEnabled = await this.enableCommand(command.groupId, commandToEnable)
+    const isCommandEnabled = await this.setCommandEnabled(command?.groupId || '', commandToEnable)
     if (isCommandEnabled) {
       if (message.reply) {
         message.reply(`Comando ${commandToEnable} habilitado com sucesso`)
@@ -87,6 +58,8 @@ export default class EnableCommand extends BaseCommand {
     }
   }
   constructor() {
-    super('on')
+    const validateExecutorAdmin = new ValidateExecutorAdmin()
+    const validateMethods = new ValidateMethods(['raw'])
+    super('on', new ValidationRunner([validateExecutorAdmin, validateMethods]))
   }
 }

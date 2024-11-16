@@ -34,6 +34,7 @@ export type MSG = proto.IMessage & {
   mediaKey?: string;
 
 }
+export type MessageReply = (text: string | Buffer, chatId?: string, options?: object) => Promise<any>;
 export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   id?: string | null;
   isBaileys?: boolean;

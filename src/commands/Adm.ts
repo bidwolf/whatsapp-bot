@@ -1,10 +1,14 @@
-import type { GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
-import { BaseCommand, Method, validateCommandProps } from "../utils/commands";
+import { BaseCommand } from "../utils/commands";
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
 import { sanitizeNumber } from "../utils/conversionHelpers";
 import { getWhatsAppId } from "../utils/getWhatsappId";
 import pino from "pino";
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../utils/constants";
+import { SUCCESS_MESSAGES } from "../utils/constants";
+import ValidateExecutorAdmin from "../validators/ValidateExecutorAdmin";
+import ValidateMethods from "../validators/ValidateMethods";
+import ValidateParticipantNotSelf from "../validators/ValidateParticipantNotSelf";
+import ValidateParticipantExists from "../validators/ValidateParticipantExists";
+import ValidationRunner from "../validators/ValidationRunner";
 /**
  * Adm
  * @description Promote or demote a group member to/from admin
@@ -12,87 +16,44 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../utils/constants";
 export default class Adm extends BaseCommand {
   private readonly logger = pino()
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    if (!message.method) throw new Error('Method not found')
-    if (!message.command) throw new Error('Command not found')
-    const command = message.command
-    const { args } = command
-    if (!command.command_executor) throw new Error('Command executor not found')
-    const groupMetadata = await this.validateCommand({ method: message.method, command, instance })
-    if (!groupMetadata || !args) return
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) return
+    const args = message.command?.args
     const userNumber = typeof args === 'string' ? args : args.join(' ')
     if (userNumber && groupMetadata && message.reply) {
       const sanitizedNumber = sanitizeNumber(userNumber);
       const whatsAppParticipantId = getWhatsAppId(sanitizedNumber);
-      const participantExists = groupMetadata.participants.find(
-        (p) => p.id === whatsAppParticipantId,
-      );
-      if (getWhatsAppId(command.command_executor) === whatsAppParticipantId) {
-        message.reply(
-          ERROR_MESSAGES.SELF_ADM_CHANGE
-        );
-        return;
-      }
-      if (!participantExists) {
-        message.reply(ERROR_MESSAGES.NOT_FOUND);
-        return;
-      }
-      if (participantExists.admin) {
-        const result = await instance.groupParticipantsUpdate(
-          groupMetadata.id,
-          [whatsAppParticipantId],
-          'demote'
-        )
-        if (result && result.length > 0 && result[0].status == '200') {
-          this.logger.info("Participant demoted");
-          message.reply(
-            SUCCESS_MESSAGES.ADM_DEMOTE
-          );
-        } else {
-          this.logger.info("Participant not demoted");
-        }
-        return;
-      }
+      const shouldDemote = groupMetadata.participants.find(participant => participant.id === whatsAppParticipantId)?.admin
       const result = await instance.groupParticipantsUpdate(
         groupMetadata.id,
         [whatsAppParticipantId],
-        'promote'
+        shouldDemote ? 'demote' : 'promote'
       )
       if (result && result.length > 0 && result[0].status == '200') {
-        this.logger.info("Participant promoted");
+        this.logger.info(shouldDemote ? "Participant demoted" : "Participant promoted");
         message.reply(
-          SUCCESS_MESSAGES.ADM_PROMOTE
+          shouldDemote ? SUCCESS_MESSAGES.ADM_DEMOTE : SUCCESS_MESSAGES.ADM_PROMOTE
         );
       } else {
-        this.logger.info("Participant not promoted");
+        this.logger.info(shouldDemote ? "Participant not demoted" : "Participant not promoted");
       }
+      return;
     }
   }
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (props.command.command_executor == undefined) {
-      throw new Error('Command executor not found')
-    }
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) return null
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-    if (isAdmin) {
-      if (!this.allowedMethods.includes(props.method)) {
-        this.logger.info(
-          `Method ${props.method} not allowed`
-        )
-      }
-      return this.allowedMethods.includes(props.method) ? groupMetadata : null
-    }
-    return null
-  }
-  private readonly allowedMethods: Method[] = ["raw", "reply", "mention"]
   constructor() {
+    const adminValidator = new ValidateExecutorAdmin()
+    const methodValidator = new ValidateMethods(['raw', 'reply', 'mention'])
+    const participantExistsValidator = new ValidateParticipantExists()
+    const notSelfValidator = new ValidateParticipantNotSelf()
     super(
-      "adm"
+      "adm",
+      new ValidationRunner([adminValidator, methodValidator, participantExistsValidator, notSelfValidator])
     )
   }
 
