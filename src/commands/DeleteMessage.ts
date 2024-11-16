@@ -1,49 +1,25 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
-import { GroupMetadata } from '@whiskeysockets/baileys';
+import { BaseCommand } from '../utils/commands';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
-import { getWhatsAppId } from '../utils/getWhatsappId';
 import Group from '../api/models/group.model';
 import Message from '../api/models/message.model';
+import ValidateExecutorAdmin from '../validators/ValidateExecutorAdmin';
+import ValidateMethods from '../validators/ValidateMethods';
+import ValidationRunner from '../validators/ValidationRunner';
 export default class DeleteMessage extends BaseCommand {
   private readonly logger = pino()
-  private readonly allowedMethods: Method[] = ['reply']
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (props.command.command_executor == undefined) {
-      throw new Error('Command executor not found')
-    }
-
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) return null
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-    if (isAdmin) {
-      if (!this.allowedMethods.includes(props.method)) {
-        this.logger.info(
-          `Method ${props.method} not allowed`
-        )
-      }
-      return this.allowedMethods.includes(props.method) ? groupMetadata : null
-    }
-    return null
-  }
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    if (!message.method) throw new Error('Method not found')
-    if (!message.command) throw new Error('Command not found')
-    const command = message.command
-    if (!command.command_executor) throw new Error('Command executor not found')
-    const groupMetadata = await this.validateCommand({ method: message.method, command, instance })
-    if (!groupMetadata) return
-    if (message.quoted) {
-      message.quoted.delete()
-    }
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) return
+    await this.deleteQuotedMessage(instance, message)
   }
-  async deleteQuotedMessage(props: validateCommandProps, messageUpdate: ExtendedWAMessageUpdate) {
+  private async deleteQuotedMessage(instance: ExtendedWaSocket, messageUpdate: ExtendedWAMessageUpdate) {
     try {
       if (!messageUpdate.quoted) {
         throw new Error('Quoted message not found')
@@ -64,13 +40,13 @@ export default class DeleteMessage extends BaseCommand {
         throw new Error('Message not found')
       }
 
-      await props.instance.sendMessage(messageUpdate.chat, {
+      instance.sendMessage(messageUpdate.chat, {
         delete: {
           remoteJid: currentMessage.remoteJid,
           fromMe: currentMessage.fromMe,
           id: currentMessage.id,
           participant: currentMessage.participant,
-        }
+        }, force: true,
       })
 
       group.messages = group.messages.filter(m => m.id !== currentMessage.id)
@@ -81,6 +57,8 @@ export default class DeleteMessage extends BaseCommand {
     }
   }
   constructor() {
-    super('del')
+    const validateExecutorAdmin = new ValidateExecutorAdmin()
+    const validateMethods = new ValidateMethods(['reply'])
+    super('del', new ValidationRunner([validateExecutorAdmin, validateMethods]))
   }
 }
