@@ -1,48 +1,32 @@
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
-import { GroupMetadata } from '@whiskeysockets/baileys';
+import { BaseCommand } from '../utils/commands';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
-import { getWhatsAppId } from '../utils/getWhatsappId';
+import ValidationRunner from '../validators/ValidationRunner';
+import ValidateMethods from '../validators/ValidateMethods';
+import ValidateExecutorAdmin from '../validators/ValidateExecutorAdmin';
 export default class RevokeLink extends BaseCommand {
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    if (!message.method) throw new Error('Method not found')
-    if (!message.command) throw new Error('Command not found')
-    const command = message.command
-    if (!command.command_executor) throw new Error('Command executor not found')
-    const groupMetadata = await this.validateCommand({ method: message.method, command, instance })
-    if (!groupMetadata) return
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) {
+      this.logger.info('revoke command not allowed')
+      return
+    }
     const inviteCode = await instance.groupRevokeInvite(groupMetadata.id)
     if (inviteCode && message.reply) {
+      this.logger.info('group link revoked')
       message.reply('Link do grupo revogado, um novo link foi gerado.')
     }
   }
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (props.command.command_executor == undefined) {
-      throw new Error('Command executor not found')
-    }
-
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) return null
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId && p.admin)
-    if (isAdmin) {
-      if (!this.allowedMethods.includes(props.method)) {
-        this.logger.info(
-          `Method ${props.method} not allowed`
-        )
-      }
-      return this.allowedMethods.includes(props.method) ? groupMetadata : null
-    }
-    return null
-  }
   private readonly logger = pino()
-  private readonly allowedMethods: Method[] = ['raw']
   constructor() {
-    super('revogar')
+    const adminValidator = new ValidateExecutorAdmin()
+    const methodValidator = new ValidateMethods(['raw'])
+    super('revogar', new ValidationRunner([adminValidator, methodValidator]))
   }
 }
