@@ -27,7 +27,7 @@ export default class EnableCommand extends BaseCommand {
         return true
       }
       existentGroup.blockedCommands = existentGroup.blockedCommands.filter(c => c !== command)
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

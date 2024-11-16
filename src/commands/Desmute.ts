@@ -28,7 +28,7 @@ export default class UnmuteCommand extends BaseCommand {
         return true
       }
       existentGroup.blackListedUsers.filter(u => u !== userJid)
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

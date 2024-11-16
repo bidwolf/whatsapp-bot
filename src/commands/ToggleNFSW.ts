@@ -18,7 +18,7 @@ export default class ToggleNSFW extends BaseCommand {
         return;
       }
       existentGroup.allowNSFW = isNSFWEnabled
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

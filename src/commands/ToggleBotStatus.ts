@@ -18,7 +18,7 @@ export default class ToggleBotStatus extends BaseCommand {
         return;
       }
       existentGroup.enabled = isBotEnabled
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

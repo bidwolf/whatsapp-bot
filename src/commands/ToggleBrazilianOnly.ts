@@ -18,7 +18,7 @@ export default class ToggleBrazilianOnly extends BaseCommand {
         return;
       }
       existentGroup.onlyBrazil = onlyBrazil
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

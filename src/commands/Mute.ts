@@ -28,7 +28,7 @@ export default class MuteCommand extends BaseCommand {
         return true
       }
       existentGroup.blackListedUsers.push(userJid)
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

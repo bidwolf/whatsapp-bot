@@ -27,7 +27,7 @@ export default class BlockCommand extends BaseCommand {
         return true
       }
       existentGroup.blockedCommands.push(command)
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

@@ -18,7 +18,7 @@ export default class Offenses extends BaseCommand {
         return;
       }
       existentGroup.allowOffenses = turnOn
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

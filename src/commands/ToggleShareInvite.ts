@@ -18,7 +18,7 @@ export default class ToggleShareInvite extends BaseCommand {
         return;
       }
       existentGroup.shareInviteEnabled = isShareInviteEnabled
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)

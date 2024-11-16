@@ -33,7 +33,7 @@ export default class WelcomeMessage extends BaseCommand {
         return
       }
       group.welcomeMessage = welcomeMessage
-      group.save()
+      await group.save()
     } catch (error) {
       this.logger.error(`Error updating welcome message: ${error}`)
     }

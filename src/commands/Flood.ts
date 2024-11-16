@@ -18,7 +18,7 @@ export default class Flood extends BaseCommand {
         return;
       }
       existentGroup.spamDetection = isFloodControlEnabled
-      existentGroup.save();
+      await existentGroup.save();
       return true
     } catch (e) {
       this.logger.error(e)
