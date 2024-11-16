@@ -1,11 +1,12 @@
 
 import pino from 'pino';
-import { BaseCommand, Method, validateCommandProps } from '../utils/commands';
+import { BaseCommand } from '../utils/commands';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from '../utils/messageTransformer';;
-import { GroupMetadata } from '@whiskeysockets/baileys';
 import Group from '../api/models/group.model';
 import { COMMAND_PREFIX } from '../utils/constants';
-import { getWhatsAppId } from '../utils/getWhatsappId';
+import ValidationRunner from '../validators/ValidationRunner';
+import ValidateMethods from '../validators/ValidateMethods';
+import ValidateExecutorAdmin from '../validators/ValidateExecutorAdmin';
 export default class ToggleBrazilianOnly extends BaseCommand {
   private async toggleBrazilOnly(groupId: string, onlyBrazil: boolean) {
     try {
@@ -25,26 +26,23 @@ export default class ToggleBrazilianOnly extends BaseCommand {
     return false
   }
   async execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void> {
-    const { command, method } = message
-    if (!command) {
-      throw new Error('Command not found')
-    }
-    if (!method) {
-      throw new Error('Method not found')
-    }
-    const groupMetadata = await this.validateCommand({ command, method, instance })
-    if (!groupMetadata) {
-      return
-    }
-    if (command.groupId) {
-      let enableGringosArg = command.args
-      if (command.args && typeof command.args === 'object') {
-        enableGringosArg = command.args[0]
+    const groupMetadata = await instance.groupMetadata(message.command?.groupId || '')
+    const valid = await this.validator.runValidations({
+      command: message.command,
+      metadata: groupMetadata,
+      method: message.method,
+      reply: message.reply
+    })
+    if (!valid) return
+    if (message.command?.groupId) {
+      let enableGringosArg = message.command?.args
+      if (message.command?.args && typeof message.command?.args === 'object') {
+        enableGringosArg = message.command?.args[0]
       }
       if (enableGringosArg === 'on' || enableGringosArg === 'off') {
-        const isGringoEnabledStatus = await this.toggleBrazilOnly(command.groupId, enableGringosArg === 'off') // if gringos are enabled, then, onlyBrazil is false
+        const isGringoEnabledStatus = await this.toggleBrazilOnly(message.command?.groupId, enableGringosArg === 'off') // if gringos are enabled, then, onlyBrazil is false
         if (isGringoEnabledStatus && message.reply) {
-          instance.sendMessage(command.groupId, {
+          instance.sendMessage(message.command?.groupId, {
             text: `Os estrangeiros ${enableGringosArg === 'on' ? '' : 'não'} podem entrar nesse grupo`,
             viewOnce: true,
             time: 86400
@@ -54,7 +52,7 @@ export default class ToggleBrazilianOnly extends BaseCommand {
       }
       if (message.reply) {
         this.logger.info('No args found or invalid args')
-        instance.sendMessage(command.groupId, {
+        instance.sendMessage(message.command?.groupId, {
           text: `Este comando pode ser usado da seguinte forma:\n\n*${COMMAND_PREFIX + this.command_name} on* (_desabilita a entrada de estrangeiros no grupo_)\n*${COMMAND_PREFIX + this.command_name} off* (_permite a entrada de estrangeiros no grupo_)`,
           viewOnce: true,
           time: 86400
@@ -63,31 +61,9 @@ export default class ToggleBrazilianOnly extends BaseCommand {
     }
   }
   private readonly logger = pino()
-  private readonly allowedMethods: Method[] = ['raw']
-  async validateCommand(props: validateCommandProps): Promise<GroupMetadata | null> {
-    if (!props.command.groupId) {
-      throw new Error('Group ID not found')
-    }
-    if (!props.command.command_executor) {
-      throw new Error('Command executor not found')
-    }
-
-    const whatsAppId = getWhatsAppId(props.command.command_executor)
-
-
-    const groupMetadata = await props.instance.groupMetadata(props.command.groupId)
-    if (!groupMetadata) {
-      throw new Error('Group metadata not found')
-    }
-    const isAdmin = groupMetadata.participants.find(p => p.id === whatsAppId)?.admin
-    if (isAdmin) {
-      const isAllowed = this.allowedMethods.includes(props.method)
-      this.logger.info(`Method ${isAllowed ? '' : 'not'} allowed for user ${whatsAppId}`)
-      return isAllowed ? groupMetadata : null
-    }
-    return null
-  }
   constructor() {
-    super('gringo')
+    const adminValidator = new ValidateExecutorAdmin()
+    const methodValidator = new ValidateMethods(['raw'])
+    super('gringo', new ValidationRunner([adminValidator, methodValidator]))
   }
 }
