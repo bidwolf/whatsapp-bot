@@ -1,0 +1,22 @@
+{
+  "create whatsapp command executor": {
+    "scope": "typescript",
+    "prefix": "whatsappExecutor",
+    "body": [
+      "import { type Logger } from 'pino';",
+      "import { IExecutionResult, IExecutor } from '../..';",
+      "import { WhatsAppMessage } from '../../../messages/WhatsappMessage';",
+      "import { GroupCommunicationSocket } from '../../../sockets';",
+      "",
+      "export default class $1WhatsappExecutor implements IExecutor<WhatsAppMessage> {",
+      "  async execute({ method, vcard, command }: WhatsAppMessage): Promise<void> {",
+      "    // Implementação do executor",
+      "  }",
+      "  result: IExecutionResult = undefined;",
+      "",
+      "  constructor(private readonly instance: GroupCommunicationSocket, private readonly logger: Logger) { }",
+      "}"
+    ],
+    "description": "Create a new WhatsApp command executor"
+  }
+}

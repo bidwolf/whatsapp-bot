@@ -1,0 +1,21 @@
+{
+  "create whatsapp toggle command executor": {
+    "scope": "typescript",
+    "prefix": "toggleWhatsappExecutor",
+    "body": [
+      "import { type Logger } from 'pino';",
+      "import { GroupField, ToggleExecutor } from '../..';",
+      "import { WhatsAppMessage } from '../../../messages/WhatsappMessage';",
+      "",
+      "export default class $1WhatsappExecutor extends ToggleExecutor<WhatsAppMessage> {",
+      "constructor(logger: Logger) {",
+      "  const onEnableDescription = ''",
+      "  const onDisableDescription = ''",
+      "  const toggleField: GroupField = 'spamDetection'",
+      "  super(toggleField, onEnableDescription, onDisableDescription, logger)",
+      "}",
+    "}"
+    ],
+    "description": "Create a new WhatsApp toggle command executor"
+  }
+}
