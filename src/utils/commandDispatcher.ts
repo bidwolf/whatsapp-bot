@@ -1,80 +1,54 @@
 import fs from 'fs';
-import { BaseCommand } from './commands';
 import { ExtendedWAMessageUpdate, ExtendedWaSocket } from './messageTransformer';
-import { IGroup } from '../api/models/group.model';
-import pino from 'pino';
+import pino, { Logger } from 'pino';
+import { CommandDispatcher } from '../dispatchers';
+import { WhatsAppGroupSocket } from '../sockets/WhatsappSocket';
+import { WhatsAppMessage } from '../messages/WhatsappMessage';
+import { CreateCommandFactory } from '../commands';
+import { LoggerFeedback } from '../feedback/loggerFeedback';
 const logger = pino()
 
-interface CommandConstructor {
-    new(): BaseCommand;
-}
-const commandClasses: CommandConstructor[] = [
+
+const commandClasses: CreateCommandFactory<WhatsAppMessage>[] = [
     require('../commands/Add').default,
     require('../commands/Adm').default,
+    require('../commands/All').default,
     require('../commands/Ban').default,
     require('../commands/BlockCommand').default,
     require('../commands/DeleteMessage').default,
     require('../commands/Description').default,
-    require('../commands/Desmute').default,
     require('../commands/EnableCommand').default,
-    require('../commands/Flood').default,
-    require('../commands/Link').default,
-    require('../commands/Mute').default,
-    require('../commands/NotifyAllMembers').default,
-    require('../commands/Offenses').default,
+    require('../commands/GroupLink').default,
+    require('../commands/MuteCommand').default,
+    require('../commands/OnlyAdminChat').default,
     require('../commands/Rename').default,
     require('../commands/RevokeLink').default,
     require('../commands/Rules').default,
     require('../commands/ToggleBotStatus').default,
-    require('../commands/ToggleBrazilianOnly').default,
-    require('../commands/ToggleChat').default,
-    require('../commands/ToggleNFSW').default,
+    require('../commands/ToggleFlood').default,
+    require('../commands/ToggleNSFW').default,
+    require('../commands/ToggleOffenses').default,
     require('../commands/ToggleShareInvite').default,
+    require('../commands/UnmuteCommand').default,
     require('../commands/UpdateStatus').default,
     require('../commands/WelcomeMessage').default,
 ];
-/**
- * CommandDispatcher
- * @description Dispatches commands to the appropriate command class
- * @author Bidwolf
- */
-class CommandDispatcher {
-    private readonly logger = pino()
-    commands: Map<string, BaseCommand> = new Map()
-    private registerCommands() {
-        commandClasses.forEach(CommandClass => {
-            const commandInstance = new CommandClass();
-            this.commands.set(commandInstance.command_name, commandInstance);
-        });
-    }
-    constructor(private readonly instance: ExtendedWaSocket, private readonly m: ExtendedWAMessageUpdate, private readonly group: IGroup) {
-        this.registerCommands()
-    }
-    async run() {
-        const command = this.m.command
-        if (!command) return
-        const cmd = this.commands.get(command.command_name)
-        if (!cmd) return
-        if (!this.group) {
-            this.logger.error('Group not provided')
-            return
-        }
-        try {
-            await cmd.execute(this.m, this.instance)
-        } catch (e) {
-            this.logger.error(e)
-        }
-    }
-}
-const initializeCommandDispatcher = async (instance: ExtendedWaSocket, m: ExtendedWAMessageUpdate, group: IGroup) => {
+
+const initializeWhatsappCommandDispatcher = async (socket: ExtendedWaSocket, m: ExtendedWAMessageUpdate, logger: Logger) => {
     try {
-        const app = new CommandDispatcher(instance, m, group);
-        app.run()
+        const waSocket = new WhatsAppGroupSocket(socket)
+        const waMessage = new WhatsAppMessage(m)
+        const feedbackSender = new LoggerFeedback()
+        const factories = commandClasses.map(factory => {
+            return factory(feedbackSender, logger)
+        })
+        const app = new CommandDispatcher(waSocket, waMessage, factories, logger);
+        app.dispatchCommand()
     } catch (e) {
         logger.error(e);
     }
 };
-export default initializeCommandDispatcher
+export default initializeWhatsappCommandDispatcher
 let file = require.resolve(__filename)
 fs.watchFile(file, () => {
     fs.unwatchFile(file)

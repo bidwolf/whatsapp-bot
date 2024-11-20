@@ -1,6 +1,5 @@
-import { ExtendedWAMessageUpdate, ExtendedWaSocket } from "../utils/messageTransformer";
+import { ExtendedWAMessageUpdate } from "../utils/messageTransformer";
 import { COMMAND_PREFIX } from "./constants";
-import { CommandValidator, Validator } from "../validators";
 
 export type BotCommand = {
   command_name: string;
@@ -9,26 +8,8 @@ export type BotCommand = {
   command_executor: string | undefined;
 }
 export type Method = "mention" | "reply" | "raw"
-/**
- * BaseCommand
- * @description Base class for all commands for enforcing a common interface
- */
-interface ICommand {
-  command_name: string;
-  validator: Validator
-  execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
-}
 interface ICommandExtractor {
   retrieveCommandDetails(): { command: BotCommand | undefined, method: Method }
-}
-export abstract class BaseCommand implements ICommand {
-  command_name: string;
-  validator: Validator
-  constructor(command_name: string, validator: Validator) {
-    this.command_name = command_name
-    this.validator = validator
-  }
-  abstract execute(message: ExtendedWAMessageUpdate, instance: ExtendedWaSocket): Promise<void>;
 }
 export class CommandExtractor implements ICommandExtractor {
   private isMention = () => {
