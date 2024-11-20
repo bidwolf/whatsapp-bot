@@ -1,19 +1,19 @@
-import { CommandValidator, ValidateProps } from '.';
-import { ERROR_MESSAGES } from '../utils/constants';
+import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
+import { IValidationResult, IValidator } from '.';
+import { IMessage } from '../messages';
 import { sanitizeNumber } from '../utils/conversionHelpers';
 import { getWhatsAppId } from '../utils/getWhatsappId';
-export default class ValidateParticipantExists implements CommandValidator {
-  async validate({ reply, metadata, command }: ValidateProps): Promise<Boolean> {
-    if (!metadata || !command || !command.args) return false
-    const userNumber = typeof command.args === 'string' ? command.args : command.args.join(' ')
-
+import { ERROR_MESSAGES } from '../utils/constants';
+export default class ValidateParticipantExists<ISocketMessage extends IMessage> implements IValidator<ISocketMessage> {
+  async validate(payload: ISocketMessage, metadata?: GroupMetadata): Promise<IValidationResult> {
+    if (!metadata || !payload.command || !payload.command.args) return { isValid: false, errorMessage: ERROR_MESSAGES.NOT_FOUND }
+    const userNumber = typeof payload.command.args === 'string' ? payload.command.args : payload.command.args.join(' ')
     const sanitizedNumber = sanitizeNumber(userNumber);
     const whatsAppParticipantId = getWhatsAppId(sanitizedNumber);
     const participantExists = metadata.participants.find(participant => participant.id === whatsAppParticipantId)
     if (participantExists) {
-      return true
+      return { isValid: true }
     }
-    reply?.(ERROR_MESSAGES.NOT_FOUND);
-    return false
+    return { isValid: false, errorMessage: ERROR_MESSAGES.NOT_FOUND }
   }
 }

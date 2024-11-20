@@ -1,17 +1,17 @@
-import { CommandValidator, ValidateProps } from '.';
-import { ERROR_MESSAGES } from '../utils/constants';
+import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
+import { IValidationResult, IValidator } from '.';
+import { IMessage } from '../messages';
 import { sanitizeNumber } from '../utils/conversionHelpers';
 import { getWhatsAppId } from '../utils/getWhatsappId';
-export default class ValidateParticipantNotAdmin implements CommandValidator {
-  async validate({ metadata, command, reply }: ValidateProps): Promise<Boolean> {
-    if (!metadata || !command) return false
-    const userNumber = typeof command.args === 'string' ? command.args : command.args.join(' ')
-
+import { ERROR_MESSAGES } from '../utils/constants';
+export default class ValidateParticipantNotAdmin<ISocketMessage extends IMessage> implements IValidator<ISocketMessage> {
+  async validate(payload: ISocketMessage, metadata?: GroupMetadata): Promise<IValidationResult> {
+    if (!metadata || !payload.command) return { isValid: false, errorMessage: ERROR_MESSAGES.PARTICIPANT_ADMIN }
+    const userNumber = typeof payload.command.args === 'string' ? payload.command.args : payload.command.args.join(' ')
     const participantExists = metadata.participants.find(participant => participant.id === getWhatsAppId(sanitizeNumber(userNumber)))
-    if (!participantExists) return false
-    if (participantExists.admin) {
-      reply?.(ERROR_MESSAGES.BAN_ADMIN)
+    if (!participantExists || participantExists.admin) {
+      return { isValid: false, errorMessage: ERROR_MESSAGES.PARTICIPANT_ADMIN }
     }
-    return !participantExists.admin
+    return { isValid: !participantExists.admin }
   }
 }

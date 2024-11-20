@@ -1,7 +1,7 @@
-import { CommandValidator } from '.';
+import { IMessage } from '../messages';
 import ValidateExecutorPermission from './ValidateExecutorPermission';
-export default class ValidateExecutorSuperAdmin extends ValidateExecutorPermission implements CommandValidator {
+export default class ValidateExecutorAdmin<ISocketMessage extends IMessage> extends ValidateExecutorPermission<ISocketMessage> {
   constructor() {
-    super('superadmin')
+    super('admin')
   }
 }
