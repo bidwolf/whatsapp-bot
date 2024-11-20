@@ -1,9 +1,9 @@
 import { Job } from "bull";
 import { TBaileysInMemoryStore } from "../api/class/BaileysInMemoryStore";
-import Message from "../api/models/message.model";
-import Group from "../api/models/group.model";
-import initializeCommandDispatcher from "../utils/commandDispatcher";
-import P from "pino";
+import Message from "../models/message.model";
+import Group from "../models/group.model";
+import initializeWhatsappCommandDispatcher from "../utils/commandDispatcher";
+import { Logger } from "pino";
 import spamCheck, { SpamCheckResult } from "../utils/spamCheck";
 import { getWhatsAppId } from "../utils/getWhatsappId";
 import { checkImageContent, checkVideoContent } from "../utils/checkImageContent";
@@ -11,17 +11,16 @@ import downloadMsg from "../api/helper/downloadMsg";
 import { MediaType } from "@whiskeysockets/baileys";
 import { ExtendedWAMessageUpdate, transformMessageUpdate } from "../utils/messageTransformer";
 import { getMediaType } from "../utils/getMediaType";
-const logger = P();
 export interface ProcessMessageJobData {
   message: ExtendedWAMessageUpdate
   key: string
-  store?: TBaileysInMemoryStore
+  store?: TBaileysInMemoryStore;
+  logger: Logger
 }
-async function processMessageJob(job: Job) {
-  const { message, key, store } = job.data
-  await processMessage({ message, key, store });
+async function processMessageJob(job: Job<ProcessMessageJobData>) {
+  await processMessage(job.data);
 }
-async function processMessage({ message, key, store }: ProcessMessageJobData): Promise<void> {
+async function processMessage({ message, key, store, logger }: ProcessMessageJobData): Promise<void> {
   logger.info("Processing message");
   try {
     if (!store) {
@@ -51,7 +50,7 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
           return
         }
       }
-      const containsWhatsAppLink = parsedMessage?.text?.match(/https:\/\/chat\.whatsapp\.com\/[^\s]+/g) || false
+      const containsWhatsAppLink = containsWhatsAppChatLink(parsedMessage)
       if (!groupAvailable.shareInviteEnabled && containsWhatsAppLink) {
         if (parsedMessage.key.fromMe) return;
         const linkGroup = await instance.instance.sock.groupInviteCode(parsedMessage.chat)
@@ -140,10 +139,10 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
         parsedMessage.command.command_name &&
         parsedMessage.command.command_executor
       ) {
-        initializeCommandDispatcher(
+        initializeWhatsappCommandDispatcher(
           instance.instance.sock,
           parsedMessage,
-          groupAvailable,
+          logger,
         );
       }
     }
@@ -152,6 +151,8 @@ async function processMessage({ message, key, store }: ProcessMessageJobData): P
   }
 }
 
-export default processMessageJob;
+module.exports = { processMessage, processMessageJob };
 
-module.exports = processMessageJob;
+function containsWhatsAppChatLink(parsedMessage: ExtendedWAMessageUpdate) {
+  return parsedMessage?.text?.match(/https:\/\/chat\.whatsapp\.com\/[^\s]+/g) || false;
+}

@@ -1,12 +1,14 @@
-import { GroupMetadata } from "@whiskeysockets/baileys"
-import { BotCommand, Method } from "../utils/commands"
-import { MessageReply } from "../utils/messageTransformer"
+import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
+import { IMessage } from "../messages"
 
-export type ValidateProps = { command?: BotCommand, method?: Method, metadata?: GroupMetadata, reply?: MessageReply }
-export type CommandValidator = {
-  validate(props: ValidateProps): Promise<Boolean>
-}
-export type Validator = {
-  runValidations(props: ValidateProps): Promise<Boolean>
-}
 
+export type IValidationRunner<ISocketMessage extends IMessage> = {
+  runValidations: (payload: ISocketMessage, metadata?: GroupMetadata) => Promise<IValidationResult>
+}
+export type IValidator<ISocketMessage extends IMessage> = {
+  validate: (payload: ISocketMessage, metadata?: GroupMetadata) => Promise<IValidationResult>
+}
+export type IValidationResult = {
+  isValid: Boolean;
+  errorMessage?: string
+}

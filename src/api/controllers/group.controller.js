@@ -135,6 +135,12 @@ exports.groupUnregister = async (req, res) => {
   return res.status(200).json({ error: false, data: data });
 };
 exports.groupAvailableList = async (req, res) => {
+  if (!req.query.key) {
+    return res.status(400).json({ error: true, message: "Key is required" });
+  }
+  if (!global.WhatsAppInstances[req.query.key]) {
+    return res.status(404).json({ error: true, message: "Instance not found" });
+  }
   const data =
     await global.WhatsAppInstances[
       req.query.key

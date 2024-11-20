@@ -14,19 +14,20 @@ class Session {
         allCollections.push(collection.name);
       });
 
-      allCollections.map(async (key) => {
-        const query = {};
-        const collection = db.collection(key);
-        const queryResult = await collection.find(query).toArray();
-        const webhook = !config.webhookEnabled
-          ? undefined
-          : config.webhookEnabled;
-        const webhookUrl = !config.webhookUrl ? undefined : config.webhookUrl;
+      for (const key of allCollections) {
+        const webhook = config.webhookEnabled
+          ? config.webhookEnabled
+          : undefined;
+        const webhookUrl = config.webhookUrl ? config.webhookUrl : undefined;
+        if (global.WhatsAppInstances[key]) {
+          logger.info(`Instance ${key} already exists`);
+          continue;
+        }
         const instance = new WhatsAppInstance(key, webhook, webhookUrl);
         await instance.init();
         global.WhatsAppInstances[key] = instance;
         restoredSessions.push(key);
-      });
+      }
     } catch (e) {
       logger.error("Error restoring sessions");
       logger.error(e);

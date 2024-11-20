@@ -16,8 +16,8 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const processButton = require("../helper/processbtn");
 const generateVC = require("../helper/genVc");
-const Chat = require("../models/chat.model");
-const Group = require("../models/group.model");
+// const Chat = require("../../models/chat.model");
+const Group = require("../../models/group.model");
 const axios = require("axios");
 const config = require("../../config/config");
 const fs = require("fs");
@@ -26,8 +26,8 @@ const useMongoDBAuthState = require("../helper/mongoAuthState");
 const { handleRemoval } = require("../../utils/listeners");
 const useStore = !process.argv.includes("--no-store");
 const NodeCache = require("node-cache");
-const Message = require("../models/message.model");
-const messageQueue = require("../../queues/messageQueue");
+const Message = require("../../models/message.model");
+// const messageQueue = require("../../queues/messageQueue");
 
 const store = useStore ? makeInMemoryStore({ logger }) : undefined;
 
@@ -43,12 +43,14 @@ const {
 } = require("../../utils/conversionHelpers");
 const { getWhatsAppId } = require("../../utils/getWhatsappId");
 const { handleAntiDelete } = require("../helper/handleAntiDelete");
+const { processMessage } = require("../../queues/ProcessMessageJob");
 const redisClient = RedisClient.getInstance();
 store?.readFromFile(jsonPath);
 setInterval(() => {
   store?.writeToFile(jsonPath);
 }, 10000);
 class WhatsAppInstance {
+  logger = pino({ level: config.log.level });
   socketConfig = {
     retryRequestDelayMs: 350,
     maxMsgRetryCount: 4,
@@ -156,12 +158,12 @@ class WhatsAppInstance {
         allowOffenses: group.allowOffenses || false,
         blackListedUsers: group.blackListedUsers || [],
       }));
-      logger.info(
+      this.logger.info(
         `Available groups loaded ${this.instance.availableGroups.length}`,
       );
       return this.instance.availableGroups;
     } catch (error) {
-      logger.error(`Error loading available groups ${error}`);
+      this.logger.error(`Error loading available groups ${error}`);
     }
   }
   async getAllAvailableGroupMetadata() {
@@ -178,15 +180,15 @@ class WhatsAppInstance {
         }),
       )
         .then(() => {
-          logger.info("Groups metadata loaded successfully.");
+          this.logger.info("Groups metadata loaded successfully.");
           return data;
         })
         .catch((error) => {
-          logger.error(`Error loading group metadata loop ${error}`);
+          this.logger.error(`Error loading group metadata loop ${error}`);
         });
       return fetchData;
     } catch (error) {
-      logger.error(`Error getting group metadata ${error}`);
+      this.logger.error(`Error getting group metadata ${error}`);
     }
   }
   /**
@@ -198,9 +200,9 @@ class WhatsAppInstance {
       const group = new Group({ key: this.key, groupId: groupId });
       await group.save();
       this.instance.availableGroups.push(group);
-      logger.info("Group registered");
+      this.logger.info("Group registered");
     } catch (error) {
-      logger.error(`Error registering group ${error}`);
+      this.logger.error(`Error registering group ${error}`);
     }
   }
   /**
@@ -214,16 +216,16 @@ class WhatsAppInstance {
         groupId: groupId,
       }).exec();
       if (!existentGroup) {
-        logger.info("Group not found");
+        this.logger.info("Group not found");
         return;
       }
       await existentGroup.deleteOne();
       this.instance.availableGroups = this.instance.availableGroups.filter(
         (g) => g.groupId !== groupId,
       );
-      logger.info("Group unregistered");
+      this.logger.info("Group unregistered");
     } catch (error) {
-      logger.error(`Error unregister group ${error}`);
+      this.logger.error(`Error unregister group ${error}`);
     }
   }
   getAllAvailableGroups() {
@@ -243,14 +245,14 @@ class WhatsAppInstance {
     try {
       const isGroupAvailable = this.isGroupAvailable(groupId);
       if (!isGroupAvailable) {
-        logger.info("Group not available");
+        this.logger.info("Group not available");
         return;
       }
       const group = await Group.findOne({
         groupId: groupId,
       }).exec();
       if (!group) {
-        logger.info("Group not found");
+        this.logger.info("Group not found");
         return;
       }
       if (!group.blockedCommands) {
@@ -262,9 +264,9 @@ class WhatsAppInstance {
         (g) => g.groupId === groupId,
       );
       this.instance.availableGroups[groupIndex] = group;
-      logger.info("Command added to blocked list");
+      this.logger.info("Command added to blocked list");
     } catch (error) {
-      logger.error(`Error adding command to blocked list ${error}`);
+      this.logger.error(`Error adding command to blocked list ${error}`);
     }
   }
   /**
@@ -277,19 +279,19 @@ class WhatsAppInstance {
     try {
       const isGroupAvailable = this.isGroupAvailable(groupId);
       if (!isGroupAvailable) {
-        logger.info("Group not available");
+        this.logger.info("Group not available");
         return;
       }
       const group = await Group.findOne({
         groupId: groupId,
       }).exec();
       if (!group) {
-        logger.info("Group not found");
+        this.logger.info("Group not found");
         return;
       }
       if (!group.blockedCommands) {
         group.blockedCommands = [];
-        logger.info("No commands blocked");
+        this.logger.info("No commands blocked");
         return;
       }
       group.blockedCommands = group.blockedCommands.filter(
@@ -300,9 +302,9 @@ class WhatsAppInstance {
         (g) => g.groupId === groupId,
       );
       this.instance.availableGroups[groupIndex] = group;
-      logger.info("Command removed from blocked list");
+      this.logger.info("Command removed from blocked list");
     } catch (error) {
-      logger.error(`Error removing command from blocked list ${error}`);
+      this.logger.error(`Error removing command from blocked list ${error}`);
     }
   }
   /**
@@ -315,14 +317,14 @@ class WhatsAppInstance {
     try {
       const isGroupAvailable = this.isGroupAvailable(groupId);
       if (!isGroupAvailable) {
-        logger.info("Group not available");
+        this.logger.info("Group not available");
         return;
       }
       const group = await Group.findOne({
         groupId: groupId,
       }).exec();
       if (!group) {
-        logger.info("Group not found");
+        this.logger.info("Group not found");
         return;
       }
       if (!group.blackListedUsers) {
@@ -334,9 +336,9 @@ class WhatsAppInstance {
         (g) => g.groupId === groupId,
       );
       this.instance.availableGroups[groupIndex] = group;
-      logger.info("Number added to blocked list");
+      this.logger.info("Number added to blocked list");
     } catch (error) {
-      logger.error(`Error adding number to blocked list ${error}`);
+      this.logger.error(`Error adding number to blocked list ${error}`);
     }
   }
 
@@ -394,7 +396,7 @@ class WhatsAppInstance {
       //     await this.init();
       //   } else {
       //     await this.collection.drop().then(() => {
-      //       logger.info("STATE: Dropped collection");
+      //       this.logger.info("STATE: Dropped collection");
       //     });
       //     this.instance.online = false;
       //   }
@@ -442,11 +444,7 @@ class WhatsAppInstance {
           this.instance.qrRetry++;
           if (this.instance.qrRetry >= config.instance.maxRetryQr) {
             // close WebSocket connection
-            this.instance.sock.ws.close();
-            // remove all events
-            this.instance.sock.ev.removeAllListeners();
-            this.instance.qr = " ";
-            logger.info("socket connection terminated");
+            this.close();
           }
         });
       }
@@ -472,8 +470,8 @@ class WhatsAppInstance {
         };
       });
       this.instance.chats.push(...initializedChats);
-      await this.updateDb(this.instance.chats);
-      await this.updateDbGroupsParticipants();
+      // await this.updateDb(this.instance.chats);
+      // await this.updateDbGroupsParticipants();
     });
 
     // on receive new chat
@@ -494,14 +492,14 @@ class WhatsAppInstance {
     sock?.ev.on("chats.update", (changedChat) => {
       //console.log('chats.update')
       //console.log(changedChat)
-      changedChat.map((chat) => {
-        const index = this.instance.chats.findIndex((pc) => pc.id === chat.id);
-        const PrevChat = this.instance.chats[index];
-        this.instance.chats[index] = {
-          ...PrevChat,
-          ...chat,
-        };
-      });
+      // changedChat.map((chat) => {
+      //   const index = this.instance.chats.findIndex((pc) => pc.id === chat.id);
+      //   const PrevChat = this.instance.chats[index];
+      //   this.instance.chats[index] = {
+      //     ...PrevChat,
+      //     ...chat,
+      //   };
+      // });
     });
 
     // on chat delete
@@ -550,34 +548,41 @@ class WhatsAppInstance {
         const messageId = latestReceivedMessage.key.id;
         const isProcessed = await redisClient.get(`processed:${messageId}`);
         if (isProcessed) {
-          logger.info(`Mensagem já processada: ${messageId}`);
+          this.logger.info(`Mensagem já processada: ${messageId}`);
           return;
         }
-        if (!messageQueue) {
-          logger.error(`messageQueue não foi inicializada`);
-          return;
-        }
-        messageQueue.add({
+        processMessage({
           message: latestReceivedMessage,
           key: this.key,
           store: store,
+          logger: this.logger,
         });
-        // Marcar a mensagem como processada
-        await redisClient.set(
-          `processed:${messageId}`,
-          "true",
-          "EX",
-          60 * 60 * 24,
-        ); // Expira em 24 horas
+        // if (!messageQueue) {
+        //   this.logger.error(`messageQueue não foi inicializada`);
+        //   return;
+        // }
+        // messageQueue.add({
+        //   message: latestReceivedMessage,
+        //   key: this.key,
+        //   store: store,
+        //   logger: this.logger,
+        // });
+        // // Marcar a mensagem como processada
+        // await redisClient.set(
+        //   `processed:${messageId}`,
+        //   "true",
+        //   "EX",
+        //   60 * 60 * 24,
+        // ); // Expira em 24 horas
       } catch (err) {
         console.log(err);
       }
       return;
       // const m = receivedMessages.messages[0];
       // try {
-      //   logger.debug(`📩 Upsert message:`, m);
+      //   this.logger.debug(`📩 Upsert message:`, m);
       // } catch (error) {
-      //   logger.error(`❌ Error handling messages.upsert event:`, error);
+      //   this.logger.error(`❌ Error handling messages.upsert event:`, error);
       // }
       // if (receivedMessages.type === "prepend")
       //   this.instance.messages.unshift(...receivedMessages.messages);
@@ -649,7 +654,7 @@ class WhatsAppInstance {
 
     sock?.ev.on("messages.update", async (messages) => {
       console.log("messages.update");
-      await handleAntiDelete(sock, messages);
+      // await handleAntiDelete(sock, messages);
       //console.dir(messages);
     });
     // sock?.ws.on("CB:call", async (data) => {
@@ -744,20 +749,20 @@ class WhatsAppInstance {
                     result.length > 0 &&
                     result[0].status == "200"
                   ) {
-                    this.logger.info("Participant removed");
+                    this.this.logger.info("Participant removed");
                   } else {
-                    this.logger.info("Participant not removed");
+                    this.this.logger.info("Participant not removed");
                   }
                   return;
                 }
               }
             });
           } catch (error) {
-            logger.error(`Error adding user to group ${groupId}`);
+            this.logger.error(`Error adding user to group ${groupId}`);
           }
-          logger.info(`A user has been added to group ${groupId}`);
+          this.logger.info(`A user has been added to group ${groupId}`);
         } else if (tag === "remove") {
-          logger.info(`A user has been removed from the group ${groupId}`);
+          this.logger.info(`A user has been removed from the group ${groupId}`);
           handleRemoval(eventContent, groupId, user, this.unregisterGroup);
         }
       });
@@ -765,7 +770,7 @@ class WhatsAppInstance {
     sock?.ev.on("groups.upsert", async (newChat) => {
       //console.log('groups.upsert')
       //console.log(newChat)
-      this.createGroupByApp(newChat);
+      // this.createGroupByApp(newChat);
       if (
         ["all", "groups", "groups.upsert"].some((e) =>
           config.webhookAllowedEvents.includes(e),
@@ -782,7 +787,7 @@ class WhatsAppInstance {
     sock?.ev.on("groups.update", async (newChat) => {
       //console.log('groups.update')
       //console.log(newChat)
-      this.updateGroupSubjectByApp(newChat);
+      // this.updateGroupSubjectByApp(newChat);
       if (
         ["all", "groups", "groups.update"].some((e) =>
           config.webhookAllowedEvents.includes(e),
@@ -800,7 +805,7 @@ class WhatsAppInstance {
     sock?.ev.on("group-participants.update", async (newChat) => {
       //console.log('group-participants.update')
       //console.log(newChat)
-      this.updateGroupParticipantsByApp(newChat);
+      // this.updateGroupParticipantsByApp(newChat);
       if (
         [
           "all",
@@ -819,11 +824,22 @@ class WhatsAppInstance {
     });
   }
 
+  close() {
+    this.instance.sock.ws.close();
+    // remove all events
+    this.instance.sock.ev.removeAllListeners();
+    this.instance.qr = " ";
+    this.logger.info("socket connection terminated");
+  }
+
   async deleteInstance(key) {
     try {
-      await Chat.findOneAndDelete({ key: key });
+      // await Chat.findOneAndDelete({ key: key });
+      const collection = global.mongoClient.db("whatsapp-api").collection(key);
+      collection.drop();
+      this.logger.info(`Instance ${key} deleted`);
     } catch (e) {
-      logger.error("Error updating document failed");
+      this.logger.error("Error updating document failed");
     }
   }
 
@@ -986,18 +1002,18 @@ class WhatsAppInstance {
   }
 
   // get user or group object from db by id
-  async getUserOrGroupById(id) {
-    try {
-      let Chats = await this.getChat();
-      const group = Chats.find((c) => c.id === this.getWhatsAppId(id));
-      if (!group)
-        throw new Error("unable to get group, check if the group exists");
-      return group;
-    } catch (e) {
-      logger.error(e);
-      logger.error("Error get group failed");
-    }
-  }
+  // async getUserOrGroupById(id) {
+  //   try {
+  //     let Chats = await this.getChat();
+  //     const group = Chats.find((c) => c.id === this.getWhatsAppId(id));
+  //     if (!group)
+  //       throw new Error("unable to get group, check if the group exists");
+  //     return group;
+  //   } catch (e) {
+  //     this.logger.error(e);
+  //     this.logger.error("Error get group failed");
+  //   }
+  // }
 
   // Group Methods
   parseParticipants(users) {
@@ -1007,7 +1023,8 @@ class WhatsAppInstance {
   async updateDbGroupsParticipants() {
     try {
       let groups = await this.groupFetchAllParticipating();
-      let Chats = await this.getChat();
+      // let Chats = await this.getChat();
+      let Chats = this.instance.chats;
       if (groups && Chats) {
         for (const [key, value] of Object.entries(groups)) {
           let group = Chats.find((c) => c.id === value.id);
@@ -1031,8 +1048,8 @@ class WhatsAppInstance {
         await this.updateDb(Chats);
       }
     } catch (e) {
-      logger.error(e);
-      logger.error("Error updating groups failed");
+      this.logger.error(e);
+      this.logger.error("Error updating groups failed");
     }
   }
 
@@ -1044,8 +1061,8 @@ class WhatsAppInstance {
       );
       return group;
     } catch (e) {
-      logger.error(e);
-      logger.error("Error create new group failed");
+      this.logger.error(e);
+      this.logger.error("Error create new group failed");
     }
   }
 
@@ -1130,8 +1147,8 @@ class WhatsAppInstance {
       if (!group) throw new Error("no group exists");
       return await this.instance.sock?.groupLeave(id);
     } catch (e) {
-      logger.error(e);
-      logger.error("Error leave group failed");
+      this.logger.error(e);
+      this.logger.error("Error leave group failed");
     }
   }
 
@@ -1143,8 +1160,8 @@ class WhatsAppInstance {
         throw new Error("unable to get invite code, check if the group exists");
       return await this.instance.sock?.groupInviteCode(id);
     } catch (e) {
-      logger.error(e);
-      logger.error("Error get invite group failed");
+      this.logger.error(e);
+      this.logger.error("Error get invite group failed");
     }
   }
 
@@ -1152,122 +1169,122 @@ class WhatsAppInstance {
     try {
       return await this.instance.sock?.groupInviteCode(id);
     } catch (e) {
-      logger.error(e);
-      logger.error("Error get invite group failed");
+      this.logger.error(e);
+      this.logger.error("Error get invite group failed");
     }
   }
 
   // get Chat object from db
-  async getChat(key = this.key) {
-    let dbResult = await Chat.findOne({ key: key }).exec();
-    let ChatObj = dbResult.chat;
-    return ChatObj;
-  }
+  // async getChat(key = this.key) {
+  //   let dbResult = await Chat.findOne({ key: key }).exec();
+  //   let ChatObj = dbResult.chat;
+  //   return ChatObj;
+  // }
 
   // create new group by application
-  async createGroupByApp(newChat) {
-    try {
-      let Chats = await this.getChat();
-      let group = {
-        id: newChat[0].id,
-        name: newChat[0].subject,
-        participant: newChat[0].participants,
-        messages: [],
-        creation: newChat[0].creation,
-        subjectOwner: newChat[0].subjectOwner,
-      };
-      Chats.push(group);
-      await this.updateDb(Chats);
-    } catch (e) {
-      logger.error(e);
-      logger.error("Error updating document failed");
-    }
-  }
+  // async createGroupByApp(newChat) {
+  //   try {
+  //     let Chats = await this.getChat();
+  //     let group = {
+  //       id: newChat[0].id,
+  //       name: newChat[0].subject,
+  //       participant: newChat[0].participants,
+  //       messages: [],
+  //       creation: newChat[0].creation,
+  //       subjectOwner: newChat[0].subjectOwner,
+  //     };
+  //     Chats.push(group);
+  //     await this.updateDb(Chats);
+  //   } catch (e) {
+  //     this.logger.error(e);
+  //     this.logger.error("Error updating document failed");
+  //   }
+  // }
 
-  async updateGroupSubjectByApp(newChat) {
-    //console.log(newChat)
-    try {
-      if (newChat[0] && newChat[0].subject) {
-        let Chats = await this.getChat();
-        const chat = Chats.find((c) => c.id === newChat[0].id);
-        if (!chat) {
-          logger.info("Group not found");
-          return;
-        }
-        chat.name = newChat[0].subject;
-        await this.updateDb(Chats);
-      }
-    } catch (e) {
-      logger.error(e);
-      logger.error("Error updating document failed");
-    }
-  }
+  // async updateGroupSubjectByApp(newChat) {
+  //   //console.log(newChat)
+  //   try {
+  //     if (newChat[0] && newChat[0].subject) {
+  //       let Chats = await this.getChat();
+  //       const chat = Chats.find((c) => c.id === newChat[0].id);
+  //       if (!chat) {
+  //         this.logger.info("Group not found");
+  //         return;
+  //       }
+  //       chat.name = newChat[0].subject;
+  //       await this.updateDb(Chats);
+  //     }
+  //   } catch (e) {
+  //     this.logger.error(e);
+  //     this.logger.error("Error updating document failed");
+  //   }
+  // }
 
-  async updateGroupParticipantsByApp(newChat) {
-    //console.log(newChat)
-    try {
-      if (newChat && newChat.id) {
-        let Chats = await this.getChat();
-        let chat = Chats.find((c) => c.id === newChat.id);
-        let is_owner = false;
-        if (chat) {
-          if (chat.participant == undefined) {
-            chat.participant = [];
-          }
-          if (chat.participant && newChat.action == "add") {
-            for (const participant of newChat.participants) {
-              chat.participant.push({
-                id: participant,
-                admin: null,
-              });
-            }
-          }
-          if (chat.participant && newChat.action == "remove") {
-            for (const participant of newChat.participants) {
-              // remove group if they are owner
-              if (chat.subjectOwner == participant) {
-                is_owner = true;
-              }
-              chat.participant = chat.participant.filter(
-                (p) => p.id != participant,
-              );
-            }
-          }
-          if (chat.participant && newChat.action == "demote") {
-            for (const participant of newChat.participants) {
-              if (chat.participant.filter((p) => p.id == participant)[0]) {
-                chat.participant.filter((p) => p.id == participant)[0].admin =
-                  null;
-              }
-            }
-          }
-          if (chat.participant && newChat.action == "promote") {
-            for (const participant of newChat.participants) {
-              if (chat.participant.filter((p) => p.id == participant)[0]) {
-                chat.participant.filter((p) => p.id == participant)[0].admin =
-                  "superadmin";
-              }
-            }
-          }
-          if (is_owner) {
-            Chats = Chats.filter((c) => c.id !== newChat.id);
-          } else {
-            Chats.filter((c) => c.id === newChat.id)[0] = chat;
-          }
-          await this.updateDb(Chats);
-        }
-      }
-    } catch (e) {
-      logger.error(e);
-      logger.error("Error updating document failed");
-    }
-  }
+  // async updateGroupParticipantsByApp(newChat) {
+  //   //console.log(newChat)
+  //   try {
+  //     if (newChat && newChat.id) {
+  //       let Chats = await this.getChat();
+  //       let chat = Chats.find((c) => c.id === newChat.id);
+  //       let is_owner = false;
+  //       if (chat) {
+  //         if (chat.participant == undefined) {
+  //           chat.participant = [];
+  //         }
+  //         if (chat.participant && newChat.action == "add") {
+  //           for (const participant of newChat.participants) {
+  //             chat.participant.push({
+  //               id: participant,
+  //               admin: null,
+  //             });
+  //           }
+  //         }
+  //         if (chat.participant && newChat.action == "remove") {
+  //           for (const participant of newChat.participants) {
+  //             // remove group if they are owner
+  //             if (chat.subjectOwner == participant) {
+  //               is_owner = true;
+  //             }
+  //             chat.participant = chat.participant.filter(
+  //               (p) => p.id != participant,
+  //             );
+  //           }
+  //         }
+  //         if (chat.participant && newChat.action == "demote") {
+  //           for (const participant of newChat.participants) {
+  //             if (chat.participant.filter((p) => p.id == participant)[0]) {
+  //               chat.participant.filter((p) => p.id == participant)[0].admin =
+  //                 null;
+  //             }
+  //           }
+  //         }
+  //         if (chat.participant && newChat.action == "promote") {
+  //           for (const participant of newChat.participants) {
+  //             if (chat.participant.filter((p) => p.id == participant)[0]) {
+  //               chat.participant.filter((p) => p.id == participant)[0].admin =
+  //                 "superadmin";
+  //             }
+  //           }
+  //         }
+  //         if (is_owner) {
+  //           Chats = Chats.filter((c) => c.id !== newChat.id);
+  //         } else {
+  //           Chats.filter((c) => c.id === newChat.id)[0] = chat;
+  //         }
+  //         await this.updateDb(Chats);
+  //       }
+  //     }
+  //   } catch (e) {
+  //     this.logger.error(e);
+  //     this.logger.error("Error updating document failed");
+  //   }
+  // }
   async fetchGroupMetadata(groupId) {
     try {
       const result = await this.instance.sock?.groupMetadata(groupId);
       return result;
     } catch (e) {
-      logger.error("Error group fetch participants failed");
+      this.logger.error("Error group fetch participants failed");
     }
   }
   async groupFetchAllParticipating() {
@@ -1275,7 +1292,7 @@ class WhatsAppInstance {
       const result = await this.instance.sock?.groupFetchAllParticipating();
       return result;
     } catch (e) {
-      logger.error("Error group fetch all participating failed");
+      this.logger.error("Error group fetch all participating failed");
     }
   }
 
@@ -1351,13 +1368,13 @@ class WhatsAppInstance {
   }
 
   // update db document -> chat
-  async updateDb(object) {
-    try {
-      await Chat.updateOne({ key: this.key }, { chat: object });
-    } catch (e) {
-      logger.error("Error updating document failed");
-    }
-  }
+  // async updateDb(object) {
+  //   try {
+  //     await Chat.updateOne({ key: this.key }, { chat: object });
+  //   } catch (e) {
+  //     this.logger.error("Error updating document failed");
+  //   }
+  // }
 
   async readMessage(msgObj) {
     try {
@@ -1369,7 +1386,7 @@ class WhatsAppInstance {
       const res = await this.instance.sock?.readMessages([key]);
       return res;
     } catch (e) {
-      logger.error("Error read message failed");
+      this.logger.error("Error read message failed");
     }
   }
 
@@ -1387,7 +1404,7 @@ class WhatsAppInstance {
       );
       return res;
     } catch (e) {
-      logger.error("Error react message failed");
+      this.logger.error("Error react message failed");
     }
   }
 }
@@ -1414,7 +1431,7 @@ exports.WhatsAppInstance = WhatsAppInstance;
 let file = require.resolve(__filename, "baileys_store_multi.json");
 fs.watchFile(file, () => {
   fs.unwatchFile(file);
-  console.log(logger.info(`Update ${file}`));
+  console.log(this.logger.info(`Update ${file}`));
   delete require.cache[file];
   require(file);
 });

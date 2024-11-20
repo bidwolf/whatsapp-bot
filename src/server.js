@@ -8,8 +8,8 @@ const config = require("./config/config");
 
 const { Session } = require("./api/class/session");
 const connectToCluster = require("./api/helper/connectMongoClient");
-const messageQueue = require("./queues/messageQueue");
-const processMessageJob = require("./queues/ProcessMessageJob");
+// const messageQueue = require("./queues/messageQueue");
+// const {processMessageJob} = require("./queues/ProcessMessageJob");
 
 let server;
 
@@ -30,7 +30,7 @@ server = app.listen(config.port, async () => {
     logger.info(`${restoreSessions.length} Session(s) Restored`);
   }
 });
-messageQueue.process(processMessageJob);
+// messageQueue.process(processMessageJob);
 
 const exitHandler = () => {
   if (server) {
