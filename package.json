@@ -8,6 +8,7 @@
     "dev": "ts-node-dev --transpile-only --respawn --project tsconfig.json src/server.js",
     "build": "tsc",
     "postinstall": "npm run build",
+    "heroku-postbuild": "npm run build",
     "start": "node dist/src/server.js",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
