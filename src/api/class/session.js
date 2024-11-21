@@ -1,4 +1,3 @@
-/* eslint-disable no-unsafe-optional-chaining */
 const { WhatsAppInstance } = require("../class/instance");
 const logger = require("pino")();
 const config = require("../../config/config");

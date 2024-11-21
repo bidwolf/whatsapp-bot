@@ -1,5 +1,4 @@
 exports.onWhatsapp = async (req, res) => {
-  // eslint-disable-next-line no-unsafe-optional-chaining
   const data = await global.WhatsAppInstances[req.query.key]?.verifyId(
     WhatsAppInstances[req.query.key]?.getWhatsAppId(req.query.id),
   );
