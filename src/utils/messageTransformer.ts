@@ -2,10 +2,6 @@
 import { proto, getContentType, WAMessageUpdate, WASocket, AnyMessageContent } from "@whiskeysockets/baileys"
 import pino from 'pino';
 import fs from 'fs';
-import axios from 'axios';
-import moment from 'moment-timezone';
-import { sizeFormatter } from 'human-readable';
-import Jimp from 'jimp';
 import { MessageFilter } from "./MessageFilter";
 import {
   CommandExtractor, Method, type BotCommand
