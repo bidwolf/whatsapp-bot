@@ -51,7 +51,8 @@ const config = {
     appUrl: APP_URL ? `${APP_URL}:${PORT}` : false,
     redis: {
         host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT
+        port: process.env.REDIS_PORT,
+        password: process.env.REDIS_PASSWORD,
     },
     log: {
         level: LOG_LEVEL,

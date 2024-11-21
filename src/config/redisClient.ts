@@ -13,6 +13,7 @@ class RedisClient {
     if (!RedisClient.instance) {
       RedisClient.instance = new Redis({
         host: config.redis.host,
+        password: config.redis.password,
         port: config.redis.port ? Number(config.redis.port) : 6379,
         enableReadyCheck: false,
         maxRetriesPerRequest: null,
