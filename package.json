@@ -4,9 +4,11 @@
   "description": "whatsapp-api is built on top of Baileys-MD.",
   "main": "server.js",
   "type": "commonjs",
+
   "scripts": {
     "dev": "ts-node-dev --transpile-only --respawn --project tsconfig.json src/server.js",
     "build": "tsc",
+    "postinstall": "npm run build",
     "start": "node dist/src/server.js",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",

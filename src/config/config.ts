@@ -48,7 +48,7 @@ const config = {
     ANTI_DELETE: process.env.ANTI_DELETE || true,
     token: TOKEN,
     restoreSessionsOnStartup: RESTORE_SESSIONS_ON_START_UP,
-    appUrl: APP_URL ? `${APP_URL}:${PORT}` : false,
+    appUrl: APP_URL,
     redis: {
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
