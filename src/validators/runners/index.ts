@@ -1,13 +1,12 @@
-import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
 import { IValidationRunner, IValidationResult, IValidator } from "..";
 import { IMessage } from "../../messages";
 import { ERROR_MESSAGES } from "../../utils/constants";
 
 export default abstract class ValidationRunner<ISocketMessage extends IMessage> implements IValidationRunner<ISocketMessage> {
-  public async runValidations(payload: ISocketMessage, metadata?: GroupMetadata): Promise<IValidationResult> {
+  public async runValidations(payload: ISocketMessage): Promise<IValidationResult> {
     try {
       for (const validator of this.validators) {
-        const result = await validator.validate(payload, metadata);
+        const result = await validator.validate(payload);
         if (!result.isValid) {
           return result
         }

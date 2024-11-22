@@ -5,8 +5,7 @@ import { GroupCommunicationSocket } from '../../../sockets';
 import { ERROR_MESSAGES } from '../../../utils/constants';
 
 export default class WhatsappExecutor implements IExecutor<WhatsAppMessage> {
-  async execute({ command }: WhatsAppMessage): Promise<void> {
-    const groupMetadata = await this.instance.getMetadata(command?.groupId || '')
+  async execute({ groupMetadata }: WhatsAppMessage): Promise<void> {
     if (!groupMetadata) {
       this.result = { message: ERROR_MESSAGES.UNKNOWN, status: '400' }
       this.logger.warn('group metadata not found')

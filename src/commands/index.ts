@@ -1,4 +1,3 @@
-import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
 import { IMessage } from "../messages";
 import { IValidationRunner } from "../validators";
 import { GroupCommunicationSocket } from "../sockets";
@@ -11,7 +10,7 @@ import { Logger } from "pino";
 export type ICommand<ISocketMessage extends IMessage> = {
   name: string;
   validationRunner: IValidationRunner<ISocketMessage>;
-  run: (message: ISocketMessage, metadata: GroupMetadata) => Promise<void>;
+  run: (message: ISocketMessage) => Promise<void>;
 };
 export type IExecutionResult = {
   status: string;
@@ -30,8 +29,8 @@ export type CreateCommandFactory<ISocketMessage extends IMessage> = (feedBackSen
 export abstract class Command<ISocketMessage extends IMessage> implements ICommand<ISocketMessage> {
   name: string;
   validationRunner: IValidationRunner<ISocketMessage>;
-  async run(message: ISocketMessage, metadata: GroupMetadata): Promise<void> {
-    const validationResult = await this.validationRunner.runValidations(message, metadata)
+  async run(message: ISocketMessage): Promise<void> {
+    const validationResult = await this.validationRunner.runValidations(message)
     if (!validationResult.isValid) {
       if (!validationResult.errorMessage) return
       this.feedbackSender.send(validationResult.errorMessage)

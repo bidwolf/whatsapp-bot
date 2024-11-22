@@ -20,6 +20,10 @@ class Session {
         const webhookUrl = config.webhookUrl ? config.webhookUrl : undefined;
         if (global.WhatsAppInstances[key]) {
           logger.info(`Instance ${key} already exists`);
+          global.WhatsAppInstances[key].close();
+          logger.info(`Instance ${key} closed`);
+          global.WhatsAppInstances[key].init();
+          logger.info(`Instance ${key} initialized`);
           continue;
         }
         const instance = new WhatsAppInstance(key, webhook, webhookUrl);
