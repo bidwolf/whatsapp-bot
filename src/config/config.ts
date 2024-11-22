@@ -51,7 +51,7 @@ const config = {
     appUrl: APP_URL,
     redis: {
         host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
+        port: Number(process.env.REDIS_PORT),
         password: process.env.REDIS_PASSWORD,
     },
     log: {
@@ -79,6 +79,7 @@ const config = {
     webhookBase64: WEBHOOK_BASE64,
     protectRoutes: PROTECT_ROUTES,
     markMessagesRead: MARK_MESSAGES_READ,
-    webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS
+    webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS,
+    feedbackType: process.env.FEEDBACK_TYPE || 'logger',
 }
 module.exports = config

@@ -13,12 +13,7 @@ export class CommandDispatcher<ISocketMessage extends IMessage> implements IComm
     const foundCommand = this.commands.get(inputCommand.command_name)
     if (!foundCommand) return
     try {
-      const metadata = await this.socket.getMetadata(inputCommand.groupId)
-      if (!metadata) {
-        this.logger.error('Não foram encontradas informações sobre esse grupo')
-        return
-      }
-      await foundCommand.run(this.message, metadata)
+      await foundCommand.run(this.message)
     } catch (e) {
       this.logger.error(e)
     }

@@ -6,6 +6,7 @@ import { WhatsAppGroupSocket } from '../sockets/WhatsappSocket';
 import { WhatsAppMessage } from '../messages/WhatsappMessage';
 import { CreateCommandFactory } from '../commands';
 import { LoggerFeedback } from '../feedback/loggerFeedback';
+import { createFeedbackSender, IFeedbackSender } from '../feedback';
 const logger = pino()
 
 
@@ -33,12 +34,14 @@ const commandClasses: CreateCommandFactory<WhatsAppMessage>[] = [
     require('../commands/UpdateStatus').default,
     require('../commands/WelcomeMessage').default,
 ];
-
+let feedbackSender: IFeedbackSender;
 const initializeWhatsappCommandDispatcher = async (socket: ExtendedWaSocket, m: ExtendedWAMessageUpdate, logger: Logger) => {
     try {
         const waSocket = new WhatsAppGroupSocket(socket)
         const waMessage = new WhatsAppMessage(m)
-        const feedbackSender = new LoggerFeedback()
+        if (!feedbackSender) {
+            feedbackSender = createFeedbackSender(waSocket, waMessage.groupId || '')
+        }
         const factories = commandClasses.map(factory => {
             return factory(feedbackSender, logger)
         })

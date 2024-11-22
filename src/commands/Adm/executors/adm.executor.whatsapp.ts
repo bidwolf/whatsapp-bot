@@ -10,7 +10,7 @@ export default class WhatsappAdminParticipantExecutor implements IExecutor<Whats
   async execute(payload: WhatsAppMessage): Promise<void> {
     const args = payload.command?.args;
     const userNumber = typeof args === 'string' ? args : args.join(' ');
-    const groupMetadata = await this.instance.getMetadata(payload.command?.groupId || '');
+    const groupMetadata = payload.groupMetadata;
     if (!groupMetadata) {
       this.result = { message: ERROR_MESSAGES.UNKNOWN, status: '400' }
       return;

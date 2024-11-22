@@ -10,6 +10,8 @@ const {
   DisconnectReason,
   isJidGroup,
   isJidNewsletter,
+  Browsers,
+  fetchLatestBaileysVersion,
   // isJidNewsletter,
 } = require("@whiskeysockets/baileys");
 const path = require("path");
@@ -42,28 +44,30 @@ const {
   isBrazilianNumber,
 } = require("../../utils/conversionHelpers");
 const { getWhatsAppId } = require("../../utils/getWhatsappId");
-const { handleAntiDelete } = require("../helper/handleAntiDelete");
+// const { handleAntiDelete,storeMessage } = require("../helper/handleAntiDelete");
 const { processMessage } = require("../../queues/ProcessMessageJob");
+// const { transformMessageUpdate } = require("../../utils/messageTransformer");
 const redisClient = RedisClient.getInstance();
 store?.readFromFile(jsonPath);
 setInterval(() => {
   store?.writeToFile(jsonPath);
 }, 10000);
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+setInterval(() => cache.clear(), CACHE_TTL);
+
 class WhatsAppInstance {
   logger = pino({ level: config.log.level });
   socketConfig = {
     retryRequestDelayMs: 350,
     maxMsgRetryCount: 4,
-    fireInitQueries: true,
     connectTimeoutMs: 20_000,
     keepAliveIntervalMs: 30_000,
     qrTimeout: 45_000,
     defaultQueryTimeoutMs: undefined,
     // comment the line below out
     shouldIgnoreJid: (jid) =>
-      !jid ||
-      /*!isJidGroup(jid) ||*/ isJidNewsletter(jid) ||
-      isJidBroadcast(jid),
+      !jid || !isJidGroup(jid) || isJidNewsletter(jid) || isJidBroadcast(jid),
     // implement to handle retries
     printQRInTerminal: false,
     msgRetryCounterCache,
@@ -79,13 +83,9 @@ class WhatsAppInstance {
       return store?.fetchGroupMetadata(jid, this.instance.sock);
     },
     getMessage: async (key) => {
-      if (store) {
-        const msg = await store.loadMessage(key.remoteJid, key.id);
-        return msg?.message || undefined;
-      }
-
-      // only if store is present
-      return proto.Message.fromObject({});
+      const cached = cache.get(key.id);
+      if (cached) return cached;
+      return { conversation: null };
     },
   };
   key = "";
@@ -139,6 +139,8 @@ class WhatsAppInstance {
     this.collection = global.mongoClient
       .db("whatsapp-api")
       .collection(this.key);
+    const { version } = await fetchLatestBaileysVersion();
+    this.socketConfig.version = version;
     const { state, saveCreds } = await useMongoDBAuthState(this.collection);
     this.authState = { state: state, saveCreds: saveCreds };
     this.socketConfig.auth = this.authState.state;
@@ -374,7 +376,13 @@ class WhatsAppInstance {
           console.log(
             `Device Logged Out, Please Delete auth_info_baileys and Scan Again.`,
           );
-          sock.logout();
+          try {
+            sock.init();
+          } catch (error) {
+            this.logger.error(`Error logging out ${error}`);
+          }
+          await this.deleteInstance(this.key);
+          sock.ev.removeAllListeners();
         } else if (reason === DisconnectReason.restartRequired) {
           console.log("Restart Required, Restarting...");
           this.init();
@@ -551,6 +559,14 @@ class WhatsAppInstance {
           this.logger.info(`Mensagem já processada: ${messageId}`);
           return;
         }
+        const unreadMessages = receivedMessages.messages.map((msg) => {
+          return {
+            remoteJid: msg.key.remoteJid,
+            id: msg.key.id,
+            participant: msg.key?.participant,
+          };
+        });
+        await sock.readMessages(unreadMessages);
         processMessage({
           message: latestReceivedMessage,
           key: this.key,
@@ -590,14 +606,7 @@ class WhatsAppInstance {
 
       // // https://adiwajshing.github.io/Baileys/#reading-messages
       // if (config.markMessagesRead) {
-      //   const unreadMessages = receivedMessages.messages.map((msg) => {
-      //     return {
-      //       remoteJid: msg.key.remoteJid,
-      //       id: msg.key.id,
-      //       participant: msg.key?.participant,
-      //     };
-      //   });
-      //   await sock.readMessages(unreadMessages);
+
       // }
 
       // this.instance.messages.unshift(...receivedMessages.messages);
@@ -822,6 +831,7 @@ class WhatsAppInstance {
           this.key,
         );
     });
+    sock?.ev.flush();
   }
 
   close() {

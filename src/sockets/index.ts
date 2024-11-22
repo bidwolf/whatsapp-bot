@@ -27,5 +27,6 @@ export type GroupCommunicationSocket = {
   updateBotStatus: (newStatus: string) => Promise<void>;
   mentionAll: (groupId: string) => Promise<{ [k: string]: any } | undefined>
   restrictGroupMessagesToAdmin: (groupId: string) => Promise<void>;
-  enableGroupMessagesToAll: (groupId: string) => Promise<void>
+  enableGroupMessagesToAll: (groupId: string) => Promise<void>;
+  sendMessage: (groupId: string, message: string) => Promise<{ [k: string]: any } | undefined>;
 }

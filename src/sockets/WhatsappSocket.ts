@@ -97,6 +97,14 @@ export class WhatsAppGroupSocket implements GroupCommunicationSocket {
       );
     }
   }
+  async sendMessage(groupId: string, message: string): Promise<{ [k: string]: any } | undefined> {
+    const response = await this.socket.sendMessage(groupId, {
+      text: message,
+    })
+    if (response) {
+      return response.toJSON()
+    }
+  };
   async getGroupInvite(groupId: string): Promise<string | undefined> {
     const inviteCode = await this.socket.groupInviteCode(groupId)
     return inviteCode

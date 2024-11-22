@@ -27,7 +27,7 @@ async function processMessage({ message, key, store, logger }: ProcessMessageJob
       throw new Error('Store not found')
     }
     const instance = global.WhatsAppInstances[key];
-    const parsedMessage = transformMessageUpdate(
+    const parsedMessage = await transformMessageUpdate(
       instance.instance.sock,
       message,
       store,

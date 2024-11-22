@@ -1,12 +1,9 @@
 import { IFeedbackSender } from ".";
-import { ExtendedWaSocket } from "../utils/messageTransformer";
-
+import { GroupCommunicationSocket } from "../sockets";
 export class WhatsappFeedback implements IFeedbackSender {
   async send(message: string): Promise<void> {
-    await this.instance.sendMessage(this.jid, {
-      text: message
-    })
+    await this.instance.sendMessage(this.groupId, message)
   }
-  constructor(private readonly instance: ExtendedWaSocket, private readonly jid: string) {
+  constructor(private readonly instance: GroupCommunicationSocket, private readonly groupId: string) {
   }
 }

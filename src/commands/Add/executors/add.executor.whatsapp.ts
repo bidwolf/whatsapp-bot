@@ -9,10 +9,9 @@ import { getWhatsAppId } from "../../../utils/getWhatsappId"
 
 
 export default class WhatsappAddParticipantExecutor implements IExecutor<WhatsAppMessage> {
-  async execute({ method, vcard, command }: WhatsAppMessage): Promise<void> {
+  async execute({ method, vcard, command, groupMetadata }: WhatsAppMessage): Promise<void> {
     const args = command?.args
     const groupId = command?.groupId || ''
-    const groupMetadata = await this.instance.getMetadata(groupId)
     if (!groupMetadata) {
       this.result = { message: ERROR_MESSAGES.UNKNOWN, status: '400' }
       return;
