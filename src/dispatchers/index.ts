@@ -9,7 +9,10 @@ export type ICommandDispatcher = {
 export class CommandDispatcher<ISocketMessage extends IMessage> implements ICommandDispatcher {
   public async dispatchCommand(): Promise<void> {
     const inputCommand = this.message.command
-    if (!inputCommand || !inputCommand.groupId) return
+    if (!inputCommand || !inputCommand.groupId) {
+      this.logger.info('No command found in message')
+      return
+    }
     const foundCommand = this.commands.get(inputCommand.command_name)
     if (!foundCommand) return
     try {

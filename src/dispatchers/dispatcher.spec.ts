@@ -1,7 +1,7 @@
 import { Logger } from "pino"
 import { CommandDispatcher } from "."
-import { ICommandFactory } from "../commands"
-import { IMessage } from "../messages"
+import { ICommand, ICommandFactory } from "../commands"
+import { AvailableCommandPlatform, IMessage } from "../messages"
 import { ChatUpdateStatus, GroupCommunicationSocket } from "../sockets"
 import { GroupMetadata } from "@whiskeysockets/baileys"
 class GroupCommunicationSocketMock implements GroupCommunicationSocket {
@@ -62,6 +62,17 @@ describe('Dispatch', () => {
   } as unknown as Logger
   const instance = new GroupCommunicationSocketMock()
   const availableCommands: ICommandFactory<IMessage>[] = [
+    {
+      init: (message: IMessage, instance: GroupCommunicationSocket): ICommand<IMessage> => {
+        return {
+          name: 'validCommand',
+          run: jest.fn(),
+          validationRunner: {
+            runValidations: jest.fn(),
+          }
+        }
+      }
+    }
   ]
   it('should be able to dispatch a command', async () => {
     // Arrange
@@ -77,5 +88,17 @@ describe('Dispatch', () => {
     expect(sut.dispatchCommand).toHaveBeenCalled()
   }
   )
-
+  it('should log an info when no command is found in the message', async () => {
+    //Arrange 
+    const message: IMessage = {
+      content: 'test',
+      platform: AvailableCommandPlatform.WHATSAPP,
+      senderId: 'sender'
+    }
+    const sut = new CommandDispatcher(instance, message, availableCommands, logger)
+    //Act
+    await sut.dispatchCommand()
+    expect(logger.info).toHaveBeenCalled()
+    expect(logger.info).toHaveBeenCalledWith('No command found in message')
+  })
 })
