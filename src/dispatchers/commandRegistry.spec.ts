@@ -1,4 +1,4 @@
-import { MockFactory } from "../__mocks__/MockFactory"
+import { MockCommandFactory } from "../__mocks__/MockCommandFactory"
 import { MockGroupCommunicationSocket } from "../__mocks__/MockGroupCommunicationSocket"
 import { MockMessage } from "../__mocks__/MockMessage"
 import { ICommandFactory } from "../commands"
@@ -14,7 +14,7 @@ describe('Command Registry', () => {
     const messageWithoutCommand = new MockMessage()
     const mockedGroupSocket = new MockGroupCommunicationSocket()
     const factoryList: ICommandFactory<IMessage>[] = [
-      new MockFactory(availableCommandName)
+      new MockCommandFactory(availableCommandName)
     ]
     const sut = new CommandRegistry(messageWithoutCommand, mockedGroupSocket, factoryList)
     //Act
@@ -45,7 +45,7 @@ describe('Command Registry', () => {
     mockMessage.setCommandAvailable(availableCommandName)
     const mockedGroupSocket = new MockGroupCommunicationSocket()
     const factoryList: ICommandFactory<IMessage>[] = [
-      new MockFactory(availableCommandName)
+      new MockCommandFactory(availableCommandName)
     ]
     const commandRegistry = new CommandRegistry(mockMessage, mockedGroupSocket, factoryList)
     //Act
