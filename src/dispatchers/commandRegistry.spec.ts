@@ -1,0 +1,27 @@
+import { MockFactory } from "../__mocks__/MockFactory"
+import { MockGroupCommunicationSocket } from "../__mocks__/MockGroupCommunicationSocket"
+import { MockMessage } from "../__mocks__/MockMessage"
+import { ICommandFactory } from "../commands"
+import { IMessage } from "../messages"
+import { CommandRegistry } from "./CommandRegistry"
+
+describe('Command Registry', () => {
+
+  it('should throw a error when try to get a command with a message without a command on it', async () => {
+    //Arrange
+    const availableCommandName = 'test'
+    const unavailableCommandName = 'unavailableCommand'
+    const messageWithoutCommand = new MockMessage()
+    const mockedGroupSocket = new MockGroupCommunicationSocket()
+    const factoryList: ICommandFactory<IMessage>[] = [
+      new MockFactory(availableCommandName)
+    ]
+    const sut = new CommandRegistry(messageWithoutCommand, mockedGroupSocket, factoryList)
+    //Act
+    const registerCommands = async () => {
+      await sut.getCommand(unavailableCommandName)
+    }
+    //assert
+    await expect(registerCommands()).rejects.toThrow('command not exists')
+  })
+})
