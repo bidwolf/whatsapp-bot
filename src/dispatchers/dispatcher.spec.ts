@@ -101,4 +101,25 @@ describe('Dispatch', () => {
     expect(logger.info).toHaveBeenCalled()
     expect(logger.info).toHaveBeenCalledWith('No command found in message')
   })
+  it('should log an info when the command is not found', async () => {
+    //Arrange
+    const commandName = 'notCommand'
+    const invalidCommandMessage: IMessage = {
+      command: {
+        command_name: commandName,
+        groupId: 'groupId',
+        args: [],
+        command_executor: 'executor'
+      },
+      content: 'content',
+      platform: AvailableCommandPlatform.WHATSAPP,
+      senderId: 'sender'
+    }
+    const sut = new CommandDispatcher(instance, invalidCommandMessage, availableCommands, logger)
+    //Act
+    await sut.dispatchCommand()
+    //Assert
+    expect(logger.info).toHaveBeenCalled()
+    expect(logger.info).toHaveBeenCalledWith(`Command not found: ${commandName}`)
+  })
 })

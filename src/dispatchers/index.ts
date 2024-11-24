@@ -14,7 +14,10 @@ export class CommandDispatcher<ISocketMessage extends IMessage> implements IComm
       return
     }
     const foundCommand = this.commands.get(inputCommand.command_name)
-    if (!foundCommand) return
+    if (!foundCommand) {
+      this.logger.info(`Command not found: ${inputCommand.command_name}`)
+      return
+    }
     try {
       await foundCommand.run(this.message)
     } catch (e) {
