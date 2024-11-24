@@ -7,7 +7,7 @@ import { CommandRegistry } from "./CommandRegistry"
 
 describe('Command Registry', () => {
 
-  it('should throw a error when try to get a command with a message without a command on it', async () => {
+  it('should throw a error when try to get a factory with a message without a command on it', async () => {
     //Arrange
     const availableCommandName = 'test'
     const unavailableCommandName = 'unavailableCommand'
@@ -19,12 +19,12 @@ describe('Command Registry', () => {
     const sut = new CommandRegistry(messageWithoutCommand, mockedGroupSocket, factoryList)
     //Act
     const registerCommands = async () => {
-      await sut.getCommand(unavailableCommandName)
+      await sut.getFactory(unavailableCommandName)
     }
     //assert
     await expect(registerCommands()).rejects.toThrow('command not exists')
   })
-  it('should return undefined when try to get a inexistent command with a message with a command on it', async () => {
+  it('should return undefined when try to get a inexistent factory with a message with a command on it', async () => {
     //Arrange
     const availableCommandName = 'test'
     const unavailableCommandName = 'unavailableCommand'
@@ -34,8 +34,23 @@ describe('Command Registry', () => {
     const factoryList: ICommandFactory<IMessage>[] = []
     const commandRegistry = new CommandRegistry(mockMessage, mockedGroupSocket, factoryList)
     //Act
-    const command = await commandRegistry.getCommand(unavailableCommandName)
+    const factory = await commandRegistry.getFactory(unavailableCommandName)
     //Assert
-    expect(command).toBeUndefined()
+    expect(factory).toBeUndefined()
+  })
+  it('should return a factory when the command currently exists', async () => {
+    //arrange
+    const availableCommandName = 'test'
+    const mockMessage = new MockMessage()
+    mockMessage.setCommandAvailable(availableCommandName)
+    const mockedGroupSocket = new MockGroupCommunicationSocket()
+    const factoryList: ICommandFactory<IMessage>[] = [
+      new MockFactory(availableCommandName)
+    ]
+    const commandRegistry = new CommandRegistry(mockMessage, mockedGroupSocket, factoryList)
+    //Act
+    const factory = await commandRegistry.getFactory(availableCommandName)
+    //Assert
+    expect(factory).toBeDefined()
   })
 })
