@@ -24,4 +24,18 @@ describe('Command Registry', () => {
     //assert
     await expect(registerCommands()).rejects.toThrow('command not exists')
   })
+  it('should return undefined when try to get a inexistent command with a message with a command on it', async () => {
+    //Arrange
+    const availableCommandName = 'test'
+    const unavailableCommandName = 'unavailableCommand'
+    const mockMessage = new MockMessage()
+    mockMessage.setCommandAvailable(availableCommandName)
+    const mockedGroupSocket = new MockGroupCommunicationSocket()
+    const factoryList: ICommandFactory<IMessage>[] = []
+    const commandRegistry = new CommandRegistry(mockMessage, mockedGroupSocket, factoryList)
+    //Act
+    const command = await commandRegistry.getCommand(unavailableCommandName)
+    //Assert
+    expect(command).toBeUndefined()
+  })
 })
