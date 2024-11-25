@@ -1,9 +1,14 @@
 import { Logger } from "pino"
 import { CommandDispatcher } from "."
-import { ICommand, ICommandFactory } from "../commands"
-import { AvailableCommandPlatform, IMessage } from "../messages"
+import { ICommandFactory } from "../commands"
+import { IMessage } from "../messages"
 import { ChatUpdateStatus, GroupCommunicationSocket } from "../sockets"
 import { GroupMetadata } from "@whiskeysockets/baileys"
+import { MockCommandFactory } from "../__mocks__/MockCommandFactory"
+import { MockCommandRegistry } from "../__mocks__/MockCommandRegistry"
+import { MockMessage } from "../__mocks__/MockMessage"
+import { CommandInitializer } from "./commandInitializer"
+import { MockCommand } from "../__mocks__/MockCommand"
 class GroupCommunicationSocketMock implements GroupCommunicationSocket {
   async getMetadata(groupId: string): Promise<GroupMetadata | undefined> {
     return undefined
@@ -55,29 +60,41 @@ class GroupCommunicationSocketMock implements GroupCommunicationSocket {
   }
 
 }
+
 describe('Dispatch', () => {
-  const logger = {
-    info: jest.fn(),
-    error: jest.fn()
-  } as unknown as Logger
-  const instance = new GroupCommunicationSocketMock()
-  const availableCommands: ICommandFactory<IMessage>[] = [
-    {
-      init: (message: IMessage, instance: GroupCommunicationSocket): ICommand<IMessage> => {
-        return {
-          name: 'validCommand',
-          run: jest.fn(),
-          validationRunner: {
-            runValidations: jest.fn(),
-          }
-        }
-      }
+  const availableCommandName = 'validCommand'
+  const simulateErrorCommandName = 'errorCommand'
+  const makeSut = (message: IMessage) => {
+    const instance = new GroupCommunicationSocketMock()
+    const command = new MockCommand(availableCommandName)
+    const errorCommand = new MockCommand(simulateErrorCommandName)
+    errorCommand.shouldThrow(true)
+    const mockedFactory = new MockCommandFactory(command)
+    const errorMockedFactory = new MockCommandFactory(errorCommand)
+    const factoryList: ICommandFactory<IMessage>[] = [
+      mockedFactory,
+      errorMockedFactory
+    ]
+    const commandRegistry = new MockCommandRegistry(factoryList)
+    const commandInitializer = new CommandInitializer(commandRegistry, instance)
+    const logger = {
+      info: jest.fn(),
+      error: jest.fn()
+    } as unknown as Logger
+    const sut = new CommandDispatcher(message, commandInitializer, logger)
+
+    return {
+      CommandInitializer,
+      commandRegistry,
+      mockedFactory,
+      logger,
+      sut
     }
-  ]
+  }
   it('should be able to dispatch a command', async () => {
     // Arrange
     const message: IMessage = {} as IMessage
-    const sut = new CommandDispatcher(instance, message, availableCommands, logger)
+    const { sut } = makeSut(message)
     jest.spyOn(sut, 'dispatchCommand')
     // Act
     await sut.dispatchCommand()
@@ -88,38 +105,34 @@ describe('Dispatch', () => {
     expect(sut.dispatchCommand).toHaveBeenCalled()
   }
   )
-  it('should log an info when no command is found in the message', async () => {
-    //Arrange 
-    const message: IMessage = {
-      content: 'test',
-      platform: AvailableCommandPlatform.WHATSAPP,
-      senderId: 'sender'
-    }
-    const sut = new CommandDispatcher(instance, message, availableCommands, logger)
-    //Act
-    await sut.dispatchCommand()
-    expect(logger.info).toHaveBeenCalled()
-    expect(logger.info).toHaveBeenCalledWith('No command found in message')
-  })
   it('should log an info when the command is not found', async () => {
     //Arrange
-    const commandName = 'notCommand'
-    const invalidCommandMessage: IMessage = {
-      command: {
-        command_name: commandName,
-        groupId: 'groupId',
-        args: [],
-        command_executor: 'executor'
-      },
-      content: 'content',
-      platform: AvailableCommandPlatform.WHATSAPP,
-      senderId: 'sender'
-    }
-    const sut = new CommandDispatcher(instance, invalidCommandMessage, availableCommands, logger)
+    const invalidCommandMessage = new MockMessage()
+    const { sut, logger } = makeSut(invalidCommandMessage)
     //Act
     await sut.dispatchCommand()
     //Assert
     expect(logger.info).toHaveBeenCalled()
-    expect(logger.info).toHaveBeenCalledWith(`Command not found: ${commandName}`)
+    expect(logger.info).toHaveBeenCalledWith('No command found in message')
+  })
+  it('should call run function when command exists', async () => {
+    //Arrange
+    const validCommandMessage = new MockMessage()
+    validCommandMessage.assignCommandName(availableCommandName)
+    const { sut, mockedFactory } = makeSut(validCommandMessage)
+    //Act
+    await sut.dispatchCommand()
+    //Assert
+    expect(mockedFactory.isCommandRun()).toBe(true)
+  })
+  it('should log an error when the command throw a error', async () => {
+    //Arrange
+    const testErrorMessage = new MockMessage()
+    testErrorMessage.assignCommandName(simulateErrorCommandName)
+    const { sut, logger } = makeSut(testErrorMessage)
+    //Act
+    await sut.dispatchCommand()
+    //Assert
+    expect(logger.error).toHaveBeenCalled()
   })
 })
