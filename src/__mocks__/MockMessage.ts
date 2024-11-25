@@ -9,7 +9,7 @@ export class MockMessage implements IMessage {
   command?: BotCommand | undefined
   groupMetadata?: GroupMetadata | undefined
   method?: Method | undefined
-  setCommandAvailable(commandName: string) {
+  assignCommandName(commandName: string) {
     this.command = {
       args: '',
       command_executor: '',
