@@ -25,9 +25,6 @@ class RevokeLinkCommandFactory<ISocketMessage extends IMessage> implements IComm
   getCommandName(): string {
     return this.name
   }
-  private name: string = {
-    return this.name
-  }
   private name: string = 'revogar';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {
