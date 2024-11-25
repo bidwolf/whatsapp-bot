@@ -17,10 +17,14 @@ export class WhatsAppMessage implements IMessage {
   constructor(socketMessage: ExtendedWAMessageUpdate) {
     this.content = socketMessage.text || '';
     this.senderId = socketMessage.sender || '';
-    this.commandExecutor = socketMessage.command?.command_executor
-    this.groupId = socketMessage.command?.groupId
+    if (socketMessage.command) {
+      this.commandExecutor = socketMessage.command.command_executor
+      this.groupId = socketMessage.command.groupId
+    }
+    if (socketMessage.quoted && socketMessage.quoted.vcard) {
+      this.vcard = socketMessage.quoted.vcard
+    }
     this.groupMetadata = socketMessage.groupMetadata
-    this.vcard = socketMessage.quoted?.vcard
     this.method = socketMessage.method
     this.command = socketMessage.command
     this.quoted = socketMessage.quoted
