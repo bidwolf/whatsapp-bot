@@ -23,6 +23,7 @@ export type IExecutor<ISocketMessage extends IMessage> = {
 }
 export type ICommandFactory<ISocketMessage extends IMessage> = {
   init(message: ISocketMessage, instance: GroupCommunicationSocket): ICommand<ISocketMessage>
+  getCommandName(): string
 }
 export type CreateCommandFactory<ISocketMessage extends IMessage> = (feedBackSender: IFeedbackSender, logger: Logger) => ICommandFactory<ISocketMessage>;
 

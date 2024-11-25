@@ -21,6 +21,9 @@ class ToggleNSFWCommandFactory<ISocketMessage extends IMessage> implements IComm
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender);
     return command;
   }
+  getCommandName(): string {
+    return this.name
+  }
   private name: string = 'nsfw';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {

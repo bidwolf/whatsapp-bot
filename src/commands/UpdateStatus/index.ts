@@ -22,6 +22,9 @@ class UpdateStatusCommandFactory<ISocketMessage extends IMessage> implements ICo
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender);
     return command;
   }
+  getCommandName(): string {
+    return this.name
+  }
   private name: string = 'status';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {

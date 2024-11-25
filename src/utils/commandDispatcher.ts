@@ -5,8 +5,10 @@ import { CommandDispatcher } from '../dispatchers';
 import { WhatsAppGroupSocket } from '../sockets/WhatsappSocket';
 import { WhatsAppMessage } from '../messages/WhatsappMessage';
 import { CreateCommandFactory } from '../commands';
-import { LoggerFeedback } from '../feedback/loggerFeedback';
 import { createFeedbackSender, IFeedbackSender } from '../feedback';
+import { CommandRegistry } from '../dispatchers/CommandRegistry';
+import { CommandInitializer } from '../dispatchers/commandInitializer';
+const config = require('../config/config');
 const logger = pino()
 
 
@@ -35,17 +37,19 @@ const commandClasses: CreateCommandFactory<WhatsAppMessage>[] = [
     require('../commands/WelcomeMessage').default,
 ];
 let feedbackSender: IFeedbackSender;
+const factories = commandClasses.map(factory => {
+    return factory(feedbackSender, logger)
+})
 const initializeWhatsappCommandDispatcher = async (socket: ExtendedWaSocket, m: ExtendedWAMessageUpdate, logger: Logger) => {
     try {
         const waSocket = new WhatsAppGroupSocket(socket)
         const waMessage = new WhatsAppMessage(m)
         if (!feedbackSender) {
-            feedbackSender = createFeedbackSender(waSocket, waMessage.groupId || '')
+            feedbackSender = createFeedbackSender(waSocket, waMessage.groupId || '', config.feedbackType)
         }
-        const factories = commandClasses.map(factory => {
-            return factory(feedbackSender, logger)
-        })
-        const app = new CommandDispatcher(waSocket, waMessage, factories, logger);
+        const registry = new CommandRegistry(factories)
+        const initializer = new CommandInitializer(registry, waSocket)
+        const app = new CommandDispatcher(waMessage, initializer, logger);
         app.dispatchCommand()
     } catch (e) {
         logger.error(e);

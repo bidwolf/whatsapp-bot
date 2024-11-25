@@ -21,6 +21,10 @@ class ToggleBotStatusCommandFactory<ISocketMessage extends IMessage> implements 
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender);
     return command;
   }
+  getCommandName(): string {
+    return this.name
+  }
+
   private name: string = 'bot';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {
