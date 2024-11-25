@@ -1,3 +1,4 @@
+import { MockCommand } from "../__mocks__/MockCommand"
 import { MockCommandFactory } from "../__mocks__/MockCommandFactory"
 import { MockCommandRegistry } from "../__mocks__/MockCommandRegistry"
 import { MockGroupCommunicationSocket } from "../__mocks__/MockGroupCommunicationSocket"
@@ -11,7 +12,8 @@ const makeSut = (availableCommandName: string): {
   registry: MockCommandRegistry
 } => {
   const mockedGroupSocket = new MockGroupCommunicationSocket()
-  const mockedFactory = new MockCommandFactory(availableCommandName)
+  const command = new MockCommand(availableCommandName)
+  const mockedFactory = new MockCommandFactory(command)
   const factoryList: ICommandFactory<IMessage>[] = [
     mockedFactory
   ]
@@ -24,7 +26,7 @@ describe('Command initializer', () => {
     const availableCommandName = 'test'
     const { sut, registry } = makeSut(availableCommandName)
     const mockedMessage = new MockMessage()
-    mockedMessage.setCommandAvailable(availableCommandName)
+    mockedMessage.assignCommandName(availableCommandName)
     const command = sut.initializeCommand(mockedMessage)
     expect(registry.called).toBe(true)
     expect(command).toBeDefined()
@@ -35,7 +37,7 @@ describe('Command initializer', () => {
     const commandNameUnavailableOnRegistry = 'unavailable'
     const { sut, registry } = makeSut(availableCommandName)
     const mockedMessage = new MockMessage()
-    mockedMessage.setCommandAvailable(commandNameUnavailableOnRegistry)
+    mockedMessage.assignCommandName(commandNameUnavailableOnRegistry)
     const command = sut.initializeCommand(mockedMessage)
     expect(registry.called).toBe(true)
     expect(command).toBeUndefined()
