@@ -12,7 +12,7 @@ export class CommandInitializer<ISocketMessage extends IMessage> implements ICom
       if (!message.command?.command_name) {
         return undefined
       }
-      const factory = this.registry.getFactory(message.command?.command_name)
+      const factory = this.registry.getFactory(message.command.command_name)
       if (!factory) {
         return undefined
       }
