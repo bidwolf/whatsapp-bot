@@ -22,6 +22,9 @@ class RenameCommandFactory<ISocketMessage extends IMessage> implements ICommandF
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender);
     return command;
   }
+  getCommandName(): string {
+    return this.name
+  }
   private name: string = 'nome';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {

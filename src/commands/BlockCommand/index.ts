@@ -21,6 +21,9 @@ class BlockCommandCommandFactory<ISocketMessage extends IMessage> implements ICo
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender);
     return command;
   }
+  getCommandName(): string {
+    return this.name
+  }
   private name: string = 'off';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {

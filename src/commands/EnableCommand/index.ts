@@ -21,6 +21,9 @@ class EnableCommandCommandFactory<ISocketMessage extends IMessage> implements IC
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender);
     return command;
   }
+  getCommandName(): string {
+    return this.name
+  }
   private name: string = 'on';
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {

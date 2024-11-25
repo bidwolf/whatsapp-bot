@@ -23,6 +23,9 @@ class AllCommandFactory<ISocketMessage extends IMessage> implements ICommandFact
     return command;
   }
   private name: string = 'all';
+  getCommandName(): string {
+    return this.name
+  }
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {
     const adminPermissionValidator = new ValidateExecutorAdmin();

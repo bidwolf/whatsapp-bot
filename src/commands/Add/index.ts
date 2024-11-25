@@ -11,7 +11,7 @@ import ValidateMethods from "../../validators/ValidateMethods";
 import ValidateNumber from "../../validators/ValidateNumber";
 import { IFeedbackSender } from "../../feedback";
 
-class CommandAddFactory<ISocketMessage extends IMessage> {
+class CommandAddFactory<ISocketMessage extends IMessage> implements ICommandFactory<ISocketMessage> {
   init(message: ISocketMessage, instance: GroupCommunicationSocket) {
     let executor: IExecutor<ISocketMessage> = {} as IExecutor<ISocketMessage>
     if (message.platform === AvailableCommandPlatform.WHATSAPP) {
@@ -22,6 +22,9 @@ class CommandAddFactory<ISocketMessage extends IMessage> {
     }
     const command = new BaseCommand(this.name, this.validationRunner, executor, this.feedBackSender)
     return command
+  }
+  getCommandName(): string {
+    return this.name
   }
   private name: string = 'add'
   private validationRunner: IValidationRunner<ISocketMessage>
