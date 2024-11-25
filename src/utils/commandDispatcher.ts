@@ -8,6 +8,7 @@ import { CreateCommandFactory } from '../commands';
 import { createFeedbackSender, IFeedbackSender } from '../feedback';
 import { CommandRegistry } from '../dispatchers/CommandRegistry';
 import { CommandInitializer } from '../dispatchers/commandInitializer';
+const config = require('../config/config');
 const logger = pino()
 
 
@@ -44,7 +45,7 @@ const initializeWhatsappCommandDispatcher = async (socket: ExtendedWaSocket, m: 
         const waSocket = new WhatsAppGroupSocket(socket)
         const waMessage = new WhatsAppMessage(m)
         if (!feedbackSender) {
-            feedbackSender = createFeedbackSender(waSocket, waMessage.groupId || '')
+            feedbackSender = createFeedbackSender(waSocket, waMessage.groupId || '', config.feedbackType)
         }
         const registry = new CommandRegistry(factories)
         const initializer = new CommandInitializer(registry, waSocket)
