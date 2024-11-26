@@ -15,7 +15,11 @@ describe('WhatsappMessage', () => {
     // Arrange
     const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
     socketMessage.quoted = {
-      vcard: 'this is a vcard'
+      message: {
+        contactMessage: {
+          vcard: 'this is a vcard'
+        }
+      },
     }
     const message = new WhatsAppMessage(socketMessage)
     // Act

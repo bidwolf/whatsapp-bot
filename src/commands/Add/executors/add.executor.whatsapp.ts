@@ -29,33 +29,33 @@ export default class WhatsappAddParticipantExecutor implements IExecutor<WhatsAp
         this.result = { status: '400', message: ERROR_MESSAGES.NO_VCARD }
         return
       }
-      try {
-        this.logger.info(`Adding participant ${newParticipantId} to group ${groupId}`)
-        const response = await this.instance.addUser(groupId, newParticipantId)
-        if (!response || response.length > 0) {
-          this.result = { status: '500', message: ERROR_MESSAGES.UNKNOWN }
-          return
-        }
-        const result = response[0]
-        this.result = { status: result.status, message: '', content: result.content }
-        if (result.status === '200') {
-          this.result.message = SUCCESS_MESSAGES.ADD;
-          return
-        }
-        if (result.status === '403') {
-          this.logger.info("Participant not added");
-          this.result.message = ERROR_MESSAGES.ADD_DIRECTLY
-          await this.instance.sendInvite(inviteCode, newParticipantId, subject, groupId);
-          return
-        }
-        if (result.status === '409') {
-          this.result.message = ERROR_MESSAGES.ALREADY_EXISTS
-        }
-
-      } catch (error) {
-        this.logger.error(error)
+    }
+    try {
+      this.logger.info(`Adding participant ${newParticipantId} to group ${groupId}`)
+      const response = await this.instance.addUser(groupId, newParticipantId)
+      if (!response || response.length > 0) {
         this.result = { status: '500', message: ERROR_MESSAGES.UNKNOWN }
+        return
       }
+      const result = response[0]
+      this.result = { status: result.status, message: '', content: result.content }
+      if (result.status === '200') {
+        this.result.message = SUCCESS_MESSAGES.ADD;
+        return
+      }
+      if (result.status === '403') {
+        this.logger.info("Participant not added");
+        this.result.message = ERROR_MESSAGES.ADD_DIRECTLY
+        await this.instance.sendInvite(inviteCode, newParticipantId, subject, groupId);
+        return
+      }
+      if (result.status === '409') {
+        this.result.message = ERROR_MESSAGES.ALREADY_EXISTS
+      }
+
+    } catch (error) {
+      this.logger.error(error)
+      this.result = { status: '500', message: ERROR_MESSAGES.UNKNOWN }
     }
   }
   result: IExecutionResult = undefined
