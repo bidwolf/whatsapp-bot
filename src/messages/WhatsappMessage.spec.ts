@@ -53,4 +53,15 @@ describe('WhatsappMessage', () => {
     // Assert
     expect(result?.syncGroupMetadata).toBeUndefined()
   })
+  it('should have a method to sync group metadata when the extended message have it', async () => {
+    //Arrange
+    const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
+    socketMessage.groupMetadata = { author: 'old author' } as GroupMetadata
+    socketMessage.refreshGroupMetadata = async () => { return { author: 'new author' } as GroupMetadata }
+    const message = new WhatsAppMessage(socketMessage)
+    //Act
+    //Assert
+    expect(message.syncGroupMetadata).toBeDefined()
+    expect(message.groupMetadata?.author).toBe('old author')
+  })
 })
