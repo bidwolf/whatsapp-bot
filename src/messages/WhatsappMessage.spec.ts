@@ -1,5 +1,6 @@
 import { ExtendedWAMessageUpdate } from "../utils/messageTransformer"
 import { WhatsAppMessage } from "./WhatsappMessage"
+import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
 
 describe('WhatsappMessage', () => {
   it('should have a platform property', () => {
@@ -43,5 +44,13 @@ describe('WhatsappMessage', () => {
     expect(result?.groupId).toBe('group-id')
     expect(result?.command_executor).toBe('tester')
 
+  })
+  it('should not have a method to sync group metadata when the extended message don\'t have it', () => {
+    // Arrange
+    const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
+    const message = new WhatsAppMessage(socketMessage)
+    const result = message
+    // Assert
+    expect(result?.syncGroupMetadata).toBeUndefined()
   })
 })
