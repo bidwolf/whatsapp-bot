@@ -64,4 +64,15 @@ describe('WhatsappMessage', () => {
     expect(message.syncGroupMetadata).toBeDefined()
     expect(message.groupMetadata?.author).toBe('old author')
   })
+  it('should update the groupMetadata on the message when syncGroupMetadata is called', async () => {
+    //Arrange
+    const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
+    socketMessage.groupMetadata = { author: 'old author' } as GroupMetadata
+    socketMessage.refreshGroupMetadata = async () => { return { author: 'new author' } as GroupMetadata }
+    const message = new WhatsAppMessage(socketMessage)
+    //Act
+    await message.syncGroupMetadata?.()
+    //Assert
+    expect(message.groupMetadata?.author).toBe('new author')
+  })
 })
