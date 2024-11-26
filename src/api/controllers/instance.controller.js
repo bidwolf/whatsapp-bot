@@ -1,6 +1,7 @@
 const { WhatsAppInstance } = require("../class/instance");
 const config = require("../../config/config");
 const { Session } = require("../class/session");
+const { sanitizeNumber } = require("../../utils/conversionHelpers");
 
 exports.init = async (req, res) => {
   const key = req.query.key;
@@ -28,7 +29,44 @@ exports.init = async (req, res) => {
     browser: config.browser,
   });
 };
-
+exports.pairCode = async (req, res) => {
+  try {
+    const phoneNumber = req.body.phoneNumber;
+    const key = req.body.key;
+    if (!phoneNumber) {
+      return res.status(400).json({
+        error: true,
+        message: "Phone number is required",
+      });
+    }
+    const sanitizedNumber = sanitizeNumber(phoneNumber);
+    if (!sanitizedNumber || sanitizedNumber.length < 10) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid phone number",
+      });
+    }
+    const code =
+      await global.WhatsAppInstances[key]?.getPairCode(sanitizedNumber);
+    if (!code) {
+      return res.status(400).json({
+        error: true,
+        message: "Failed to send pairing code",
+      });
+    }
+    return res.json({
+      error: false,
+      message: "Pairing code sent successfully",
+      code: code,
+    });
+  } catch {
+    res.json({
+      error: true,
+      message: "Failed to send pairing code",
+      code: "",
+    });
+  }
+};
 exports.qr = async (req, res) => {
   try {
     const qrcode = await global.WhatsAppInstances[req.query.key]?.instance.qr;

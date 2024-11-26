@@ -421,30 +421,21 @@ class WhatsAppInstance {
       //       },
       //       this.key,
       //     );
-      // } else if (connection === "open") {
-      //   if (config.mongoose.enabled) {
-      //     let alreadyThere = await Chat.findOne({
-      //       key: this.key,
-      //     }).exec();
-      //     if (!alreadyThere) {
-      //       const saveChat = new Chat({ key: this.key });
-      //       await saveChat.save();
-      //     }
-      //   }
-      //   this.instance.online = true;
-      //   if (
-      //     ["all", "connection", "connection.update", "connection:open"].some(
-      //       (e) => config.webhookAllowedEvents.includes(e),
-      //     )
-      //   )
-      //     await this.SendWebhook(
-      //       "connection",
-      //       {
-      //         connection: connection,
-      //       },
-      //       this.key,
-      //     );
-      // }
+      else if (connection === "open") {
+        this.instance.online = true;
+        if (
+          ["all", "connection", "connection.update", "connection:open"].some(
+            (e) => config.webhookAllowedEvents.includes(e),
+          )
+        )
+          await this.SendWebhook(
+            "connection",
+            {
+              connection: connection,
+            },
+            this.key,
+          );
+      }
 
       if (qr) {
         QRCode.toDataURL(qr).then((url) => {
@@ -847,6 +838,7 @@ class WhatsAppInstance {
       // await Chat.findOneAndDelete({ key: key });
       const collection = global.mongoClient.db("whatsapp-api").collection(key);
       collection.drop();
+      this.instance.online = false;
       this.logger.info(`Instance ${key} deleted`);
     } catch (e) {
       this.logger.error("Error updating document failed");
@@ -915,7 +907,23 @@ class WhatsAppInstance {
     );
     return status;
   }
-
+  async getPairCode(phoneNumber) {
+    try {
+      const pairCode =
+        await this.instance.sock?.requestPairingCode(phoneNumber);
+      if (pairCode) {
+        return pairCode;
+      }
+      if (!this.instance.sock.authState.creds.pairingCode) {
+        let code = await this.instance.sock.requestPairingCode(phoneNumber);
+        code = code?.match(/.{1,4}/g)?.join("-") || code;
+        return code;
+      }
+      return this.instance.sock.authState.creds.pairingCode;
+    } catch (error) {
+      this.logger.error(`Error getting pairing code ${error}`);
+    }
+  }
   async blockUnblock(to, data) {
     await this.verifyId(this.getWhatsAppId(to));
     const status = await this.instance.sock?.updateBlockStatus(
