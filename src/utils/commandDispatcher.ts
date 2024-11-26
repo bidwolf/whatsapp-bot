@@ -37,9 +37,7 @@ const commandClasses: CreateCommandFactory<WhatsAppMessage>[] = [
     require('../commands/WelcomeMessage').default,
 ];
 let feedbackSender: IFeedbackSender;
-const factories = commandClasses.map(factory => {
-    return factory(feedbackSender, logger)
-})
+
 const initializeWhatsappCommandDispatcher = async (socket: ExtendedWaSocket, m: ExtendedWAMessageUpdate, logger: Logger) => {
     try {
         const waSocket = new WhatsAppGroupSocket(socket)
@@ -47,6 +45,9 @@ const initializeWhatsappCommandDispatcher = async (socket: ExtendedWaSocket, m: 
         if (!feedbackSender) {
             feedbackSender = createFeedbackSender(waSocket, waMessage.groupId || '', config.feedbackType)
         }
+        const factories = commandClasses.map(factory => {
+            return factory(feedbackSender, logger)
+        })
         const registry = new CommandRegistry(factories)
         const initializer = new CommandInitializer(registry, waSocket)
         const app = new CommandDispatcher(waMessage, initializer, logger);
