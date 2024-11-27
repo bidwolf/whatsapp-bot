@@ -3,6 +3,7 @@ const path = require("path");
 const helmet = require("helmet");
 const exceptionHandler = require("express-exception-handler");
 const cors = require("cors");
+const mime = require('mime-types');
 exceptionHandler.handle();
 const app = express();
 const error = require("../api/middlewares/error");
@@ -55,6 +56,15 @@ app.use(helmet.referrerPolicy({ policy: "no-referrer" }));
 app.use(helmet.frameguard({ action: "deny" }));
 app.use(helmet.xssFilter());
 app.use(helmet.noSniff());
+
+// Middleware para definir o tipo MIME correto para arquivos CSS
+app.use((req, res, next) => {
+  if (req.url.endsWith('.css')) {
+    res.setHeader('Content-Type', mime.lookup('.css'));
+  }
+  next();
+});
+
 app.use(cors(corsOptions));
 app.use(express.static(frontendPath));
 app.use(express.json());
@@ -67,5 +77,10 @@ global.WhatsAppInstances = {};
 const routes = require("../api/routes/");
 app.use("/", routes);
 app.use(error.handler);
+
+// Middleware para servir o index.html para todas as rotas que não correspondem a uma rota de API
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 module.exports = app;

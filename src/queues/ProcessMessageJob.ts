@@ -6,11 +6,12 @@ import initializeWhatsappCommandDispatcher from "../utils/commandDispatcher";
 import { Logger } from "pino";
 import spamCheck, { SpamCheckResult } from "../utils/spamCheck";
 import { getWhatsAppId } from "../utils/getWhatsappId";
-import { checkImageContent, checkVideoContent } from "../utils/checkImageContent";
+
 import downloadMsg from "../api/helper/downloadMsg";
 import { MediaType } from "@whiskeysockets/baileys";
 import { ExtendedWAMessageUpdate, transformMessageUpdate } from "../utils/messageTransformer";
 import { getMediaType } from "../utils/getMediaType";
+import os from 'os';
 export interface ProcessMessageJobData {
   message: ExtendedWAMessageUpdate
   key: string
@@ -109,7 +110,12 @@ async function processMessage({ message, key, store, logger }: ProcessMessageJob
       }
       group.messages.push(newMessage._id);
       await group.save();
-      if (!group?.allowNSFW && parsedMessage.mtype && parsedMessage.msg?.url) {
+      const isMac = os.platform() === 'darwin';
+      if (isMac) {
+        logger.info("Running on macOS, skipping NSFW check");
+      }
+      if (!isMac && !group?.allowNSFW && parsedMessage.mtype && parsedMessage.msg?.url) {
+        const { checkImageContent, checkVideoContent } = await import("../utils/checkImageContent");
         const checkableMediaTypes: MediaType[] = ["image", "gif", "video", "thumbnail-video", "thumbnail-image"]
         const shouldCheck = checkableMediaTypes.includes(getMediaType(parsedMessage.mtype))
         if (shouldCheck) {

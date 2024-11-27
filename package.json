@@ -9,11 +9,11 @@
     "copy-assets": "ts-node tools/copyAssets",
     "build": "npm-run-all clean tsc copy-assets",
     "dev:start": "npm-run-all build start",
-    "dev": "ts-node-dev --transpile-only --respawn --project tsconfig.json src/server.js",
+    "dev": "NODE_ENV=development ts-node-dev --transpile-only --respawn --project tsconfig.json src/server.js",
     "postinstall": "npm run build",
     "tsc": "tsc",
     "heroku-postbuild": "npm run build",
-    "start": "node dist/server.js",
+    "start": "NODE_ENV=production node dist/server.js",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "lint:check": "eslint .",
@@ -97,5 +97,6 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.2"
-  }
+  },
+  "packageManager": "yarn@4.5.1+sha512.341db9396b6e289fecc30cd7ab3af65060e05ebff4b3b47547b278b9e67b08f485ecd8c79006b405446262142c7a38154445ef7f17c1d5d1de7d90bf9ce7054d"
 }

@@ -10,7 +10,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   React.useEffect(() => {
     if (token) return
     const currentToken = localStorage.getItem('token')
-    if (currentToken) {
+    if (currentToken && !token) {
       setAuthorizationToken(currentToken)
       setToken(currentToken)
     }
