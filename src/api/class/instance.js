@@ -919,7 +919,7 @@ class WhatsAppInstance {
         code = code?.match(/.{1,4}/g)?.join("-") || code;
         return code;
       }
-      return this.instance.sock.authState.creds.pairingCode;
+      return null;
     } catch (error) {
       this.logger.error(`Error getting pairing code ${error}`);
     }

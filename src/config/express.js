@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const helmet = require("helmet");
 const exceptionHandler = require("express-exception-handler");
 const cors = require("cors");
 exceptionHandler.handle();
@@ -23,6 +24,37 @@ const corsOptions = {
   },
 };
 const frontendPath = path.join(__dirname, "../../frontend/dist");
+app.use(helmet());
+const isProduction = process.env.NODE_ENV === "production";
+if (isProduction) {
+  app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+      },
+    }),
+  );
+  app.use(
+    helmet.hsts({
+      maxAge: 365 * 24 * 60 * 60,
+      includeSubDomains: true,
+    }),
+  );
+} else {
+  app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'", "localhost:5173"],
+        scriptSrc: ["'self'", "localhost:5173"],
+      },
+    }),
+  );
+}
+app.use(helmet.referrerPolicy({ policy: "no-referrer" }));
+app.use(helmet.frameguard({ action: "deny" }));
+app.use(helmet.xssFilter());
+app.use(helmet.noSniff());
 app.use(cors(corsOptions));
 app.use(express.static(frontendPath));
 app.use(express.json());
