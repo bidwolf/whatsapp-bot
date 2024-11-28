@@ -7,7 +7,7 @@
   "scripts": {
     "clean": "rimraf dist/* && rimraf frontend/build/*",
     "copy-assets": "ts-node tools/copyAssets",
-    "build": "npm-run-all clean build-frontend tsc copy-assets",
+    "build": "npm-run-all clean tsc copy-assets",
     "build-frontend": "cd frontend && npm install && npm run build && cd ..",
     "dev:start": "npm-run-all build start",
     "dev": "NODE_ENV=development ts-node-dev --transpile-only --respawn --project tsconfig.json src/server.js",
