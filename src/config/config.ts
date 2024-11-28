@@ -9,7 +9,8 @@ const RESTORE_SESSIONS_ON_START_UP = !!(
     process.env.RESTORE_SESSIONS_ON_START_UP &&
     process.env.RESTORE_SESSIONS_ON_START_UP === 'true'
 )
-
+const USR = process.env.USR
+const USW = process.env.USW
 const APP_URL = process.env.APP_URL || false
 
 const LOG_LEVEL = process.env.LOG_LEVEL
@@ -45,6 +46,8 @@ const MARK_MESSAGES_READ = !!(
 )
 const config = {
     port: PORT,
+    USW,
+    USR,
     ANTI_DELETE: process.env.ANTI_DELETE || true,
     token: TOKEN,
     restoreSessionsOnStartup: RESTORE_SESSIONS_ON_START_UP,

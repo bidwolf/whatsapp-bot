@@ -8,8 +8,13 @@ const router = express.Router()
 router.route('/login').post((req, res) => {
   const username = req.body.username;
   const password = req.body.password;
-
-  if (username === 'romulo' && password === 'IeRtagelfRAg') {
+  if (!username || !password) {
+    res.status(401).send('Unauthorized')
+  }
+  if (!config.USR || !config.USW) {
+    res.status(401).send('Unauthorized');
+  }
+  if (username === config.USR && password === config.USW) {
     const token = jwt.sign({ username }, secretKey, { expiresIn: '1h' });
     res.status(200).json({ message: 'Login successful', token });
   } else {
