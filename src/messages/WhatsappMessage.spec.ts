@@ -1,5 +1,6 @@
 import { ExtendedWAMessageUpdate } from "../utils/messageTransformer"
 import { WhatsAppMessage } from "./WhatsappMessage"
+import { type GroupMetadata } from "@whiskeysockets/baileys/lib/Types/GroupMetadata";
 
 describe('WhatsappMessage', () => {
   it('should have a platform property', () => {
@@ -15,7 +16,11 @@ describe('WhatsappMessage', () => {
     // Arrange
     const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
     socketMessage.quoted = {
-      vcard: 'this is a vcard'
+      message: {
+        contactMessage: {
+          vcard: 'this is a vcard'
+        }
+      },
     }
     const message = new WhatsAppMessage(socketMessage)
     // Act
@@ -39,5 +44,35 @@ describe('WhatsappMessage', () => {
     expect(result?.groupId).toBe('group-id')
     expect(result?.command_executor).toBe('tester')
 
+  })
+  it('should not have a method to sync group metadata when the extended message don\'t have it', () => {
+    // Arrange
+    const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
+    const message = new WhatsAppMessage(socketMessage)
+    const result = message
+    // Assert
+    expect(result?.syncGroupMetadata).toBeUndefined()
+  })
+  it('should have a method to sync group metadata when the extended message have it', async () => {
+    //Arrange
+    const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
+    socketMessage.groupMetadata = { author: 'old author' } as GroupMetadata
+    socketMessage.refreshGroupMetadata = async () => { return { author: 'new author' } as GroupMetadata }
+    const message = new WhatsAppMessage(socketMessage)
+    //Act
+    //Assert
+    expect(message.syncGroupMetadata).toBeDefined()
+    expect(message.groupMetadata?.author).toBe('old author')
+  })
+  it('should update the groupMetadata on the message when syncGroupMetadata is called', async () => {
+    //Arrange
+    const socketMessage: ExtendedWAMessageUpdate = {} as ExtendedWAMessageUpdate
+    socketMessage.groupMetadata = { author: 'old author' } as GroupMetadata
+    socketMessage.refreshGroupMetadata = async () => { return { author: 'new author' } as GroupMetadata }
+    const message = new WhatsAppMessage(socketMessage)
+    //Act
+    await message.syncGroupMetadata?.()
+    //Assert
+    expect(message.groupMetadata?.author).toBe('new author')
   })
 })

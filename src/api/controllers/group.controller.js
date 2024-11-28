@@ -121,10 +121,26 @@ exports.groupJoin = async (req, res) => {
   return res.status(201).json({ error: false, data: data });
 };
 exports.groupRegister = async (req, res) => {
+  if (!req.query.key) {
+    return res.status(400).json({ error: true, message: "Key is required" });
+  }
+  if (!global.WhatsAppInstances[req.query.key]) {
+    return res.status(404).json({ error: true, message: "Instance not found" });
+  }
+  if (!req.body.id) {
+    return res
+      .status(400)
+      .json({ error: true, message: "Group id is required" });
+  }
   const data = await global.WhatsAppInstances[req.query.key].registerGroup(
     req.body.id,
   );
-  return res.status(200).json({ error: false, data: data });
+  if (!data) {
+    return res
+      .status(422)
+      .json({ error: true, message: "Group already registered" });
+  }
+  return res.status(200).json({ error: false, message: "Group registered" });
 };
 exports.groupUnregister = async (req, res) => {
   const instance = global.WhatsAppInstances[req.query.key];

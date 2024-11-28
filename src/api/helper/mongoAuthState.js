@@ -14,6 +14,7 @@ const initAuthCreds = () => {
     noiseKey: Curve.generateKeyPair(),
     signedIdentityKey: identityKey,
     signedPreKey: signedKeyPair(identityKey, 1),
+    pairingEphemeralKeyPair: Curve.generateKeyPair(),
     registrationId: generateRegistrationId(),
     advSecretKey: randomBytes(32).toString("base64"),
     processedHistoryMessages: [],

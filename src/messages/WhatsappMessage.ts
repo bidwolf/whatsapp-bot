@@ -11,6 +11,7 @@ export class WhatsAppMessage implements IMessage {
   groupId?: string
   vcard?: string
   groupMetadata?: GroupMetadata
+  syncGroupMetadata?: () => Promise<void>
   method?: Method
   command?: BotCommand
   quoted?: { id: string }
@@ -21,8 +22,16 @@ export class WhatsAppMessage implements IMessage {
       this.commandExecutor = socketMessage.command.command_executor
       this.groupId = socketMessage.command.groupId
     }
-    if (socketMessage.quoted && socketMessage.quoted.vcard) {
-      this.vcard = socketMessage.quoted.vcard
+    if (socketMessage.quoted && socketMessage.quoted.message.contactMessage.vcard) {
+      this.vcard = socketMessage.quoted.message.contactMessage.vcard
+    }
+    if (socketMessage.refreshGroupMetadata) {
+      this.syncGroupMetadata = async () => {
+        const groupMetadata = await socketMessage.refreshGroupMetadata?.()
+        if (groupMetadata) {
+          this.groupMetadata = groupMetadata
+        }
+      }
     }
     this.groupMetadata = socketMessage.groupMetadata
     this.method = socketMessage.method

@@ -38,6 +38,7 @@ export type ExtendedWAMessageUpdate = WAMessageUpdate & proto.WebMessageInfo & {
   fromMe?: boolean | null;
   isGroup?: boolean;
   groupMetadata?: GroupMetadata;
+  refreshGroupMetadata?: () => Promise<GroupMetadata>;
   sender?: string;
   participant?: string;
   mtype?: string;
@@ -96,6 +97,11 @@ export const transformMessageUpdate = async (conn: ExtendedWaSocket, messageUpda
           if (metadataCache.size > MAX_CACHE_SIZE) metadataCache.delete(metadataCache.keys().next().value);
         }
         messageUpdate.groupMetadata = metadata;
+        messageUpdate.refreshGroupMetadata = async () => {
+          const metadata = await conn.groupMetadata(messageUpdate.chat);
+          metadataCache.set(messageUpdate.chat, metadata);
+          return metadata;
+        };
       }
     } catch (error) {
 

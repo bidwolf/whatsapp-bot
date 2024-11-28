@@ -30,7 +30,7 @@ class AdmCommandFactory<ISocketMessage extends IMessage> implements ICommandFact
   private validationRunner: IValidationRunner<ISocketMessage>;
   constructor(private readonly feedBackSender: IFeedbackSender, private readonly logger: Logger) {
     const adminPermissionValidator = new ValidateExecutorAdmin();
-    const methodValidator = new ValidateMethods(['raw', 'reply']);
+    const methodValidator = new ValidateMethods(['mention', 'reply']);
     const validateNumber = new ValidateNumber();
     this.validationRunner = new WhatsappValidationRunner([methodValidator, validateNumber, adminPermissionValidator]);
   }
