@@ -203,6 +203,7 @@ class WhatsAppInstance {
       await group.save();
       this.instance.availableGroups.push(group);
       this.logger.info("Group registered");
+      return group;
     } catch (error) {
       this.logger.error(`Error registering group ${error}`);
     }
