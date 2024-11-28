@@ -7,6 +7,7 @@ type AuthProviderProps = {
 }
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = React.useState<string | null>(null)
+  const [loading, setLoading] = React.useState(true)
   React.useEffect(() => {
     if (token) return
     const currentToken = localStorage.getItem('token')
@@ -14,7 +15,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthorizationToken(currentToken)
       setToken(currentToken)
     }
-  }, [token])
+    setLoading(false)
+  }, [])
   const signIn = React.useCallback(
     async (username: string, password: string): Promise<void> => {
       try {
@@ -38,8 +40,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null)
   }, [])
   const contextValue = React.useMemo(() => ({
-    token, signIn, signOut
-  }), [token, signIn, signOut])
+    token, signIn, signOut, loading
+  }), [token, signIn, signOut, loading])
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
