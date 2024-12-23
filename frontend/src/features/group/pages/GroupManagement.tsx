@@ -108,9 +108,9 @@ const MainPanel: React.FC = () => {
                       </button>
                     </div>
                     <p className='flex gap-2 items-center'><ExclamationTriangleIcon className='text-primary-300' />Ofensas {group.allowOffenses ? "Habilitadas" : "Desabilitadas"}</p>
-                    <p className='flex gap-2 items-center'><PersonIcon className='text-primary-300' />{group.participants.length} Usuários</p>
-                    <p className='flex gap-2 items-center'><GearIcon className='text-primary-300' />{group.blockedCommands.length > 0 ? `${group.blockedCommands.length} Comandos bloqueados` : 'Nenhum comando bloqueado'}</p>
-                    <p className='flex gap-2 items-center'><LockClosedIcon className='text-primary-300' />{group.blackListedUsers.length > 0 ? `${group.blackListedUsers.length} Usuários bloqueados` : 'Nenhum usuário bloqueado'}</p>
+                    <p className='flex gap-2 items-center'><PersonIcon className='text-primary-300' />{group?.participants?.length} Usuários</p>
+                    <p className='flex gap-2 items-center'><GearIcon className='text-primary-300' />{group?.blockedCommands?.length > 0 ? `${group.blockedCommands.length} Comandos bloqueados` : 'Nenhum comando bloqueado'}</p>
+                    <p className='flex gap-2 items-center'><LockClosedIcon className='text-primary-300' />{group?.blackListedUsers?.length > 0 ? `${group.blackListedUsers.length} Usuários bloqueados` : 'Nenhum usuário bloqueado'}</p>
 
                   </div>
                 ))
