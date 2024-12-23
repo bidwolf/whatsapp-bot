@@ -86,7 +86,7 @@ const MainPanel: React.FC = () => {
   return (
     <React.Suspense fallback={<p>...carregando</p>}>
       <div>
-        {groups.length > 0 ? (
+        {groups?.length > 0 ? (
           <>
             <h2 className='text-2xl font-medium text-primary-300 text-center'>Gerenciar Grupos</h2>
 
